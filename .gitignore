@@ -1,0 +1,104 @@
+# ==========================================
+# 1. System & OS (Ubuntu/Linux/MacOS)
+# ==========================================
+.DS_Store
+Thumbs.db
+.directory
+*.swp
+*.swo
+*~
+.fuse_hidden*
+.trash/
+
+# ==========================================
+# 2. Dependencies & Build Output
+# ==========================================
+node_modules/
+dist/
+build/
+out/
+.npm
+.cache/
+.parcel-cache
+.eslintcache
+*.tsbuildinfo
+
+# ==========================================
+# 3. Environment & Security (CRITICAL)
+# ==========================================
+.env
+.env.local
+.env.dev
+.env.development
+.env.test
+.env.staging
+.env.production
+.env.*.local
+
+# Allow example files for team documentation
+!.env.example
+
+# Private keys and certificates
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pub
+
+# ==========================================
+# 4. Database (PostgreSQL / Prisma)
+# ==========================================
+# Ignore local DB data if mapped to a folder
+/postgres_data/
+/data/db/
+
+# Prisma specific
+/prisma/migrations_lock.toml
+/prisma/*.db
+/prisma/*.db-journal
+
+# ==========================================
+# 5. DevOps & Cloud (Docker / MinIO)
+# ==========================================
+.docker/
+# Local storage/MinIO bucket data
+/storage/
+/uploads/
+/minio_data/
+/temp/
+
+# ==========================================
+# 6. Logs & Debugging
+# ==========================================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+.v8.map
+core
+debug.log
+
+# ==========================================
+# 7. Testing & Coverage
+# ==========================================
+/coverage/
+/.nyc_output/
+*.lcov
+.jest/
+
+# ==========================================
+# 8. IDEs & Editors
+# ==========================================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+.classpath

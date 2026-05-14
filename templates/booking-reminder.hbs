@@ -1,0 +1,41 @@
+<div
+  style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;border:1px solid #eaeaea;font-family:Arial,Helvetica,sans-serif;overflow:hidden"
+>
+  <div style="background:#4CAF50;padding:25px;text-align:center;color:white">
+    <h1 style="margin:0;font-size:24px;">Teams11</h1>
+    <p style="margin:5px 0 0;font-size:14px;opacity:0.9;">Booking Reminder</p>
+  </div>
+
+  <div style="padding:30px;color:#333;line-height:1.6">
+    <h2 style="margin-top:0;color:#222;">Hi {{name}},</h2>
+
+    <p>
+      This is a friendly reminder about your upcoming booking:
+    </p>
+
+    <ul style="padding-left:20px;">
+      <li><strong>Service:</strong> {{serviceTitle}}</li>
+      <li><strong>Business:</strong> {{businessName}}</li>
+      <li><strong>Date:</strong> {{date}}</li>
+      <li><strong>Time:</strong> {{time}}</li>
+      {{#if staffName}}
+        <li><strong>Assigned Staff:</strong> {{staffName}}</li>
+      {{/if}}
+    </ul>
+
+    <p style="margin-top:25px">
+      If you need to reschedule or cancel, please do so through your Teams11
+      dashboard.
+    </p>
+
+    <p style="margin-top:25px">
+      Thank you for choosing Teams11. We look forward to seeing you!
+    </p>
+  </div>
+
+  <div
+    style="background:#fafafa;padding:20px;text-align:center;font-size:12px;color:#888;border-top:1px solid #eee"
+  >
+    <p style="margin:0">© 2026 Teams11. All rights reserved.</p>
+  </div>
+</div>

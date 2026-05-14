@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  surge-postgres:
+    image: postgres:17-alpine
+    container_name: surge_postgres_container
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: surge_admin
+      POSTGRES_PASSWORD: surge_password_2026
+      POSTGRES_DB: surge_db
+    ports:
+      - "6543:5432"
+    volumes:
+      - surge_postgres_data:/var/lib/postgresql/data
+    networks:
+      - surge_network
+
+  surge-minio:
+    image: minio/minio:latest
+    container_name: surge_minio_container
+    restart: unless-stopped
+    ports:
+      - "9100:9000"
+      - "9101:9001"
+    environment:
+      MINIO_ROOT_USER: surge_minio_user
+      MINIO_ROOT_PASSWORD: surge_minio_password
+    volumes:
+      - surge_minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - surge_network
+
+  surge-redis:
+    image: redis:7.2-alpine
+    container_name: surge_redis_container
+    restart: unless-stopped
+    ports:
+      - "6385:6379"
+    volumes:
+      - surge_redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - surge_network
+
+  surge_platform_backend:
+    build: .
+    container_name: surge_platform_backend_container
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    depends_on:
+      - surge-postgres
+      - surge-minio
+      - surge-redis
+    environment:
+      DATABASE_URL: postgresql://surge_admin:surge_password_2026@surge-postgres:5432/surge_db
+      REDIS_URL: redis://surge-redis:6379
+      MINIO_ENDPOINT: surge-minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: surge_minio_user
+      MINIO_SECRET_KEY: surge_minio_password
+      MINIO_BUCKET: surge-bucket
+      NODE_ENV: production
+      PORT: 8080
+    volumes:
+      - ./surge_platform_backend:/app
+      - /app/node_modules
+    networks:
+      - surge_network
+    command: sh -c "npx prisma migrate deploy && npm run start"
+
+networks:
+  surge_network:
+    driver: bridge
+
+volumes:
+  surge_postgres_data:
+  surge_minio_data:
+  surge_redis_data:
