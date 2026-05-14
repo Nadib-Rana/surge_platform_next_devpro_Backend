@@ -1,13 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../common/context/prisma.service";
-import { StorageService } from "../storage/storage.service";
 
 @Injectable()
 export class UsersService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly storageService: StorageService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getMyProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -30,13 +26,6 @@ export class UsersService {
       throw new NotFoundException("User not found");
     }
 
-    const avatarUrl = user.avatarKey
-      ? await this.storageService.getPresignedObjectUrl(
-          user.avatarKey,
-          "profiles",
-        )
-      : null;
-
     return {
       id: user.id,
       fullName: user.fullName,
@@ -45,7 +34,7 @@ export class UsersService {
       role: user.role,
       age: user.age,
       gender: user.gender,
-      avatarUrl,
+      avatarKey: user.avatarKey,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
     };

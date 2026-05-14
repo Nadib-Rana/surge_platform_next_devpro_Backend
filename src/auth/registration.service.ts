@@ -9,6 +9,7 @@ import { randomInt } from "crypto";
 import { RegisterDto } from "./dto/register.dto";
 import { MailerService } from "@nestjs-modules/mailer";
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class RegistrationService {
@@ -74,18 +75,19 @@ export class RegistrationService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await this.prisma.user.create({
-      data: {
-        fullName,
-        email,
-        phoneNumber,
-        password: hashedPassword,
-        role,
-        avatarKey,
-        age,
-        gender,
-      },
-    });
+    const createData: Prisma.UserCreateInput = {
+      fullName,
+      email,
+      phoneNumber,
+      password: hashedPassword,
+      age,
+      gender,
+    };
+
+    if (role !== undefined) createData.role = role;
+    if (avatarKey !== undefined) createData.avatarKey = avatarKey;
+
+    const user = await this.prisma.user.create({ data: createData });
 
     const token = this.generateOTP();
     const verification = await this.prisma.verificationToken.create({

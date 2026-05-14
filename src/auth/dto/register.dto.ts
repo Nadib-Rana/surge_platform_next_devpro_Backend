@@ -12,6 +12,7 @@ import {
 export enum UserRole {
   CUSTOMER = "customer",
   VENDOR = "vendor",
+  STAFF = "staff",
 }
 
 export enum Gender {
@@ -21,8 +22,9 @@ export enum Gender {
 }
 
 export class RegisterDto {
+  @IsOptional()
   @IsString()
-  fullName: string;
+  fullName?: string;
 
   @IsEmail()
   email: string;
@@ -39,8 +41,9 @@ export class RegisterDto {
   @IsString()
   avatarKey?: string;
 
+  @IsOptional()
   @IsEnum(UserRole)
-  role: UserRole;
+  role?: UserRole;
 
   @IsInt()
   @Min(1)
