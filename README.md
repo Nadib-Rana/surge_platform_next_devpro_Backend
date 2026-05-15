@@ -23,19 +23,10 @@ This backend has been reduced to user authentication and user profile endpoints.
 
 ## Register Payload
 
-`POST /auth/register` now requires:
+`POST /auth/register` now requires only:
 
 - `email` (string, email)
 - `password` (string, min 6)
-- `age` (integer, 1-120)
-- `gender` (`male` | `female` | `other`)
-
-Optional fields:
-
-- `fullName`
-- `phoneNumber`
-- `avatarKey`
-- `role` (`customer` | `vendor` | `staff`)
 
 ## Removed Feature Domains
 

@@ -59,16 +59,7 @@ export class RegistrationService {
 
   // Register user
   async register(data: RegisterDto) {
-    const {
-      fullName,
-      email,
-      phoneNumber,
-      password,
-      role,
-      avatarKey,
-      age,
-      gender,
-    } = data;
+    const { email, password } = data;
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) throw new BadRequestException("Email already exists");
@@ -76,16 +67,9 @@ export class RegistrationService {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const createData: Prisma.UserCreateInput = {
-      fullName,
       email,
-      phoneNumber,
       password: hashedPassword,
-      age,
-      gender,
     };
-
-    if (role !== undefined) createData.role = role;
-    if (avatarKey !== undefined) createData.avatarKey = avatarKey;
 
     const user = await this.prisma.user.create({ data: createData });
 
@@ -104,7 +88,7 @@ export class RegistrationService {
       subject: "Welcome to Teams11!",
       template: "./verification",
       context: {
-        name: fullName,
+        name: email,
         otp: token,
       },
       tokenId: verification.id,
