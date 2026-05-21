@@ -54,6 +54,9 @@ services:
       - surge-postgres
       - surge-minio
       - surge-redis
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       DATABASE_URL: postgresql://surge_admin:surge_password_2026@surge-postgres:5432/surge_db
       REDIS_URL: redis://surge-redis:6379
@@ -64,6 +67,9 @@ services:
       MINIO_BUCKET: surge-bucket
       NODE_ENV: production
       PORT: 8080
+      MAILTRAP_TOKEN: ${MAILTRAP_TOKEN}
+      MAILTRAP_FROM_EMAIL: ${MAILTRAP_FROM_EMAIL}
+      MAILTRAP_FROM_NAME: ${MAILTRAP_FROM_NAME}
     volumes:
       - ./surge_platform_backend:/app
       - /app/node_modules

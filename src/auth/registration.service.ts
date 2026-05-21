@@ -7,7 +7,7 @@ import * as bcrypt from "bcryptjs";
 import { JwtService } from "@nestjs/jwt";
 import { randomInt } from "crypto";
 import { RegisterDto } from "./dto/register.dto";
-import { MailerService } from "@nestjs-modules/mailer";
+import { MailtrapService } from "../mail/mailtrap.service";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
@@ -16,7 +16,7 @@ export class RegistrationService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private mailerService: MailerService,
+    private mailtrapService: MailtrapService,
   ) {}
 
   // Helper: generate 6-digit numeric OTP
@@ -30,20 +30,17 @@ export class RegistrationService {
 
   private async sendOtpEmailWithRetry(params: {
     email: string;
-    subject: string;
-    template: string;
-    context: Record<string, unknown>;
-    tokenId: string;
+    otp: string;
+    userName?: string;
   }): Promise<void> {
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        await this.mailerService.sendMail({
+        await this.mailtrapService.sendOtpEmail({
           to: params.email,
-          subject: params.subject,
-          template: params.template,
-          context: params.context,
+          otp: params.otp,
+          userName: params.userName,
         });
 
         return;
@@ -51,7 +48,14 @@ export class RegistrationService {
         const lastError = this.getErrorMessage(error);
 
         if (attempt === maxAttempts) {
-          console.error("OTP email delivery failed after retries:", lastError);
+          console.error(
+            "OTP email delivery failed after retries:",
+            lastError,
+            error instanceof Error ? error.stack : undefined,
+          );
+          throw new Error(
+            `Email delivery failed after ${maxAttempts} attempts: ${lastError}`,
+          );
         }
       }
     }
@@ -85,13 +89,8 @@ export class RegistrationService {
 
     await this.sendOtpEmailWithRetry({
       email,
-      subject: "Welcome to Teams11!",
-      template: "./verification",
-      context: {
-        name: email,
-        otp: token,
-      },
-      tokenId: verification.id,
+      otp: token,
+      userName: email,
     });
 
     return { message: "User registered. Check your email for OTP." };
@@ -174,13 +173,8 @@ export class RegistrationService {
 
     await this.sendOtpEmailWithRetry({
       email,
-      subject: "Email Verification OTP - Teams11",
-      template: "./verification",
-      context: {
-        name: user.fullName,
-        otp: token,
-      },
-      tokenId: verification.id,
+      otp: token,
+      userName: user.fullName || undefined,
     });
 
     return { message: "OTP resent. Check your email." };

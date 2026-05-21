@@ -2,14 +2,14 @@ import { BadRequestException } from "../common/exceptions/http.exceptions";
 import { PrismaService } from "../common/context/prisma.service";
 import * as bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
-import { MailerService } from "@nestjs-modules/mailer";
+import { MailtrapService } from "../mail/mailtrap.service";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class PasswordResetService {
   constructor(
     private prisma: PrismaService,
-    private mailerService: MailerService,
+    private mailtrapService: MailtrapService,
   ) {}
 
   // Helper: generate 6-digit numeric OTP
@@ -23,20 +23,17 @@ export class PasswordResetService {
 
   private async sendOtpEmailWithRetry(params: {
     email: string;
-    subject: string;
-    template: string;
-    context: Record<string, unknown>;
-    tokenId: string;
+    otp: string;
+    userName?: string;
   }): Promise<void> {
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
-        await this.mailerService.sendMail({
+        await this.mailtrapService.sendPasswordResetEmail({
           to: params.email,
-          subject: params.subject,
-          template: params.template,
-          context: params.context,
+          otp: params.otp,
+          userName: params.userName,
         });
 
         return;
@@ -47,6 +44,10 @@ export class PasswordResetService {
           console.error(
             "Password reset email failed after retries:",
             lastError,
+            error instanceof Error ? error.stack : undefined,
+          );
+          throw new Error(
+            `Password reset email failed after ${maxAttempts} attempts: ${lastError}`,
           );
         }
       }
@@ -70,13 +71,8 @@ export class PasswordResetService {
 
     await this.sendOtpEmailWithRetry({
       email,
-      subject: "Password Reset OTP",
-      template: "./verification",
-      context: {
-        name: user.fullName,
-        otp: token,
-      },
-      tokenId: verification.id,
+      otp: token,
+      userName: user.fullName || undefined,
     });
 
     return { message: "Password reset OTP sent." };

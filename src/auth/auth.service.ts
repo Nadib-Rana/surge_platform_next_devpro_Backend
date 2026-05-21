@@ -3,7 +3,6 @@ import { PrismaService } from "../common/context/prisma.service";
 import { JwtService } from "@nestjs/jwt";
 // import { randomInt } from "crypto";
 import { RegisterDto } from "./dto/register.dto";
-import { MailerService } from "@nestjs-modules/mailer";
 import { Injectable } from "@nestjs/common";
 import { RegistrationService } from "./registration.service";
 import { LoginService } from "./login.service";
@@ -14,7 +13,6 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private mailerService: MailerService,
     private registrationService: RegistrationService,
     private loginService: LoginService,
     private passwordResetService: PasswordResetService,

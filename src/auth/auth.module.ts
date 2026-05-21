@@ -11,6 +11,7 @@ import { PassportModule } from "@nestjs/passport";
 import { JwtStrategy } from "./jwt.strategy";
 import { jwtConstants } from "./constants";
 import { RolesGuard } from "./guards/roles.guard";
+import { MailModule } from "../mail/mail.module";
 // import { Roles } from "./decorators/roles.decorator";
 
 @Module({
@@ -23,6 +24,7 @@ import { RolesGuard } from "./guards/roles.guard";
       }),
     }),
     ContextModule,
+    MailModule,
   ],
   controllers: [AuthController],
   providers: [
