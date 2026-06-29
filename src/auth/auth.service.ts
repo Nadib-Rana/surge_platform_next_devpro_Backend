@@ -28,7 +28,6 @@ export class AuthService {
     return this.registrationService.verifyEmail(token);
   }
 
-  // Login (accept email or phone as identifier; staff bypass verification)
   async login(
     identifier: string | undefined,
     password: string,
