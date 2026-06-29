@@ -22,6 +22,7 @@ out/
 .parcel-cache
 .eslintcache
 *.tsbuildinfo
+bun.lock
 
 # ==========================================
 # 3. Environment & Security (CRITICAL)
