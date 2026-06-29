@@ -26,14 +26,14 @@ out/
 # ==========================================
 # 3. Environment & Security (CRITICAL)
 # ==========================================
-.env
-.env.local
-.env.dev
-.env.development
-.env.test
-.env.staging
-.env.production
-.env.*.local
+# .env
+# .env.local
+# .env.dev
+# .env.development
+# .env.test
+# .env.staging
+# .env.production
+# .env.*.local
 
 # Allow example files for team documentation
 !.env.example
