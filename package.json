@@ -26,6 +26,7 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "setup": "bun install && bun run db:generate && bun run db:migrate",
+    "nadib0":"docker stop surge_platform_postgres",
     "nadib1": "docker compose up -d",
     "nadib2": "bun nest start"
   },
