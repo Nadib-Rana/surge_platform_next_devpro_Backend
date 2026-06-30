@@ -1,13 +1,13 @@
 import {
   //   UnauthorizedException,
   BadRequestException,
-} from "../common/exceptions/http.exceptions";
-import { PrismaService } from "../common/context/prisma.service";
+} from "../../common/exceptions/http.exceptions";
+import { PrismaService } from "../../common/context/prisma.service";
 import * as bcrypt from "bcryptjs";
 import { JwtService } from "@nestjs/jwt";
 import { randomInt } from "crypto";
 import { RegisterDto } from "./dto/register.dto";
-import { MailtrapService } from "../mail/mailtrap.service";
+import { MailtrapService } from "../../mail/mailtrap.service";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 

@@ -1,4 +1,4 @@
-import { PrismaService } from "../common/context/prisma.service";
+import { PrismaService } from "../../common/context/prisma.service";
 // import * as bcrypt from "bcryptjs";
 import { JwtService } from "@nestjs/jwt";
 // import { randomInt } from "crypto";

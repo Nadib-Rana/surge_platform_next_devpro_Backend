@@ -1,8 +1,8 @@
 import {
   UnauthorizedException,
   BadRequestException,
-} from "../common/exceptions/http.exceptions";
-import { PrismaService } from "../common/context/prisma.service";
+} from "../../common/exceptions/http.exceptions";
+import { PrismaService } from "../../common/context/prisma.service";
 import * as bcrypt from "bcryptjs";
 import { JwtService } from "@nestjs/jwt";
 import { Injectable } from "@nestjs/common";

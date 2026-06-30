@@ -1,8 +1,8 @@
-import { BadRequestException } from "../common/exceptions/http.exceptions";
-import { PrismaService } from "../common/context/prisma.service";
+import { BadRequestException } from "../../common/exceptions/http.exceptions";
+import { PrismaService } from "../../common/context/prisma.service";
 import * as bcrypt from "bcryptjs";
 import { randomInt } from "crypto";
-import { MailtrapService } from "../mail/mailtrap.service";
+import { MailtrapService } from "../../mail/mailtrap.service";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()

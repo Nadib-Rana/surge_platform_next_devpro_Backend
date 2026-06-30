@@ -6,12 +6,14 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==========================================
+// GLOBALS & ENUMS
+// ==========================================
+
 enum UserRole {
   customer
   admin
 }
-
-
 
 enum TokenType {
   email_verification
@@ -19,33 +21,299 @@ enum TokenType {
   login_otp
 }
 
-model User {
-  id          String    @id @default(uuid()) @db.Uuid
-  fullName    String?   @map("full_name")
-  email       String    @unique
-  phoneNumber String?   @unique @map("phone")
-  password    String    @map("password")
-  role        UserRole  @default(customer)
-  avatarKey   String?   @map("profile_image")
-  isVerified  Boolean   @default(false) @map("is_verified")
-  createdAt   DateTime  @default(now()) @map("created_at")
+// ==========================================
+// MODULE 1: USERS, WORKSPACES & BILLING
+// ==========================================
 
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  fullName    String?  @map("full_name")
+  email       String   @unique
+  phoneNumber String?  @unique @map("phone")
+  password    String   @map("password")
+  role        UserRole @default(customer)
+  avatarKey   String?  @map("profile_image")
+  isVerified  Boolean  @default(false) @map("is_verified")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
   verificationTokens VerificationToken[]
+  subscription       Subscription?
+  companies          Company[]
+  workspaceMembers   WorkspaceMember[]
 
   @@map("users")
 }
 
 model VerificationToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String   @unique
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
   type      TokenType
-  expiresAt DateTime @map("expiresAt")
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("createdAt")
+  expiresAt DateTime  @map("expiresAt")
+  used      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("createdAt")
 
   @@map("verification_tokens")
   @@index([token])
   @@index([userId, type, used])
+}
+
+model Subscription {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @unique @map("user_id") @db.Uuid
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier               String    @map("tier") // Starter, Pro, Enterprise
+  monthlyPostLimit   Int       @map("monthly_post_limit")
+  currentPostsCount  Int       @default(0) @map("current_posts_count")
+  feedLimit          Int       @default(5) @map("feed_limit")
+  status             String    @map("status") // ACTIVE, SUSPENDED, CANCELED
+  resetAt            DateTime? @map("reset_at")
+
+  @@map("subscriptions")
+}
+
+model Company {
+  id               String   @id @default(uuid()) @db.Uuid
+  ownerId          String   @map("owner_id") @db.Uuid
+  owner            User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name             String   @map("name")
+  status           String   @map("status") // active, suspended, past_due
+  stripeCustomerId String?  @unique @map("stripe_customer_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  invoices   Invoice[]
+  workspaces Workspace[]
+
+  @@map("companies")
+}
+
+model Invoice {
+  id              String    @id @default(uuid()) @db.Uuid
+  companyId       String    @map("company_id") @db.Uuid
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stripeInvoiceId String?   @unique @map("stripe_invoice_id")
+  amount          Int       @map("amount") // Amount in cents
+  currency        String    @default("USD") @map("currency")
+  status          String    @map("status") // paid, failed, pending
+  paidAt          DateTime? @map("paid_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@map("invoices")
+}
+
+model Workspace {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String   @map("name")
+  timezone    String   @default("UTC") @map("timezone")
+  queueConfig Json?    @map("queue_config") // BullMQ schedules and dynamic settings
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  members            WorkspaceMember[]
+  rssFeeds           RssFeed[]
+  rawPostsBuffer     RawPostsBuffer[]
+  aiPrompts          AiPrompt[]
+  generatedDrafts    GeneratedDraft[]
+  publishingChannels PublishingChannel[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String   @default("member") @map("role") // owner, admin, member
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("workspace_members")
+}
+
+// ==========================================
+// MODULE 2 & 3: INGESTION & RAW POSTS BUFFER
+// ==========================================
+
+model RssFeed {
+  id            String    @id @default(uuid()) @db.Uuid
+  workspaceId   String    @map("workspace_id") @db.Uuid
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  feedUrl       String    @map("feed_url")
+  status        String    @default("active") @map("status")
+  lastFetchedAt DateTime? @map("last_fetched_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  rawPosts RawPostsBuffer[]
+
+  @@map("rss_feeds")
+}
+
+model RawPostsBuffer {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  feedId      String    @map("feed_id") @db.Uuid
+  rssFeed     RssFeed   @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  urlHash     String    @unique @map("url_hash")
+  title       String    @map("title")
+  rawContent  String    @db.Text @map("raw_content")
+  publishedAt DateTime  @map("published_at") // গত ৩ বা ৭ দিনের ফিল্টারিংয়ের জন্য
+  qualityScore Int?     @map("quality_score")
+  status      String    @map("status") // buffered, processing, discarded, ready
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  generatedDrafts GeneratedDraft[]
+
+  @@map("raw_posts_buffer")
+}
+
+// ==========================================
+// MODULE 4: AI PROMPTS & GENERATED DRAFTS
+// ==========================================
+
+model AiPrompt {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String?   @map("workspace_id") @db.Uuid // Global হলে Null থাকবে
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String    @map("name")
+  description String?   @map("description") @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  versions PromptVersion[]
+
+  @@map("ai_prompts")
+}
+
+model PromptVersion {
+  id                     String   @id @default(uuid()) @db.Uuid
+  promptId               String   @map("prompt_id") @db.Uuid
+  aiPrompt               AiPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  versionTag             String   @map("version_tag")
+  systemPrompt           String   @db.Text @map("system_prompt")
+  isActive               Boolean  @default(false) @map("is_active")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  // Relations
+  generatedDrafts GeneratedDraft[]
+
+  @@index([promptId, versionTag])
+  @@map("prompt_versions")
+}
+
+model GeneratedDraft {
+  id                   String        @id @default(uuid()) @db.Uuid
+  workspaceId          String        @map("workspace_id") @db.Uuid
+  workspace            Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  rawPostId            String?       @map("raw_post_id") @db.Uuid // Batch Digest হলে Null থাকবে
+  rawPost              RawPostsBuffer? @relation(fields: [rawPostId], references: [id], onDelete: SetNull)
+  promptVersionId      String        @map("prompt_version_id") @db.Uuid
+  promptVersion        PromptVersion @relation(fields: [promptVersionId], references: [id])
+  
+  // Content Distribution
+  wordpressHtmlContent String?       @db.Text @map("wordpress_html_content")
+  socialPlainText      String?       @db.Text @map("social_plain_text")
+  imageUrl             String?       @map("image_url")
+  imageProvider        String?       @map("image_provider") // openai, midjourney, ideogram
+
+  // Scheduling & Campaign Type
+  generationType       String        @default("auto_cron") @map("generation_type") // auto_cron, manual_on_demand, batch_digest
+  status               String        @default("pending") @map("status") // pending, approved, rejected, scheduled, auto_dispatch
+  scheduledAt          DateTime?     @map("scheduled_at") // ফিউচার অটো-পোস্ট টাইম
+  createdAt            DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  publishedLogs PublishedPostsLog[]
+
+  @@map("generated_drafts")
+}
+
+// ==========================================
+// MODULE 5 & 6: PUBLISHING, CHANNELS & RETRIES
+// ==========================================
+
+model PublishingChannel {
+  id                   String    @id @default(uuid()) @db.Uuid
+  workspaceId          String    @map("workspace_id") @db.Uuid
+  workspace            Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  platform             String    @map("platform") // wordpress, wix, linkedin, facebook
+  encryptedCredentials String    @map("encrypted_credentials") @db.Text
+  isActive             Boolean   @default(true) @map("is_active")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  publishedLogs PublishedPostsLog[]
+
+  @@map("publishing_channels")
+}
+
+model PublishedPostsLog {
+  id             String            @id @default(uuid()) @db.Uuid
+  draftId        String            @map("draft_id") @db.Uuid
+  generatedDraft GeneratedDraft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  channelId      String            @map("channel_id") @db.Uuid
+  channel        PublishingChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  idempotencyKey String            @unique @map("idempotency_key") // Redis TTL Distributed Lock
+  status         String            @map("status") // sent, failed, retrying
+  livePostUrl    String?           @map("live_post_url")
+  retryCount     Int               @default(0) @map("retry_count")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  failedQueues FailedPostsQueue[]
+  analytics    PostAnalytics?
+
+  @@map("published_posts_logs")
+}
+
+model FailedPostsQueue {
+  id          String            @id @default(uuid()) @db.Uuid
+  logId       String            @map("log_id") @db.Uuid
+  publishLog  PublishedPostsLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  bullmqJobId String            @map("bullmq_job_id")
+  errorMessage String?          @map("error_message") @db.Text
+  retryConfig Json?             @map("retry_config")
+  isResolved  Boolean           @default(false) @map("is_resolved")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@map("failed_posts_queue")
+}
+
+// ==========================================
+// OBSERVABILITY & ANALYTICS LOOP
+// ==========================================
+
+model PostAnalytics {
+  id           String            @id @default(uuid()) @db.Uuid
+  logId        String            @unique @map("log_id") @db.Uuid
+  publishLog   PublishedPostsLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  viewCount    Int               @default(0) @map("view_count")
+  likeCount    Int               @default(0) @map("like_count")
+  commentCount Int               @default(0) @map("comment_count")
+  shareCount   Int               @default(0) @map("share_count")
+  lastSyncedAt DateTime?         @map("last_synced_at")
+
+  @@map("post_analytics")
+}
+
+model SystemLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  traceId     String   @map("trace_id") // OpenTelemetry Trace Context Key
+  companyId   String?  @map("company_id") @db.Uuid
+  serviceName String   @map("service_name") // API, IngestWorker, AIWorker, PubWorker
+  message     String   @db.Text @map("message")
+  level       String   @map("level") // INFO, WARN, ERROR, CRITICAL
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("system_logs")
 }
