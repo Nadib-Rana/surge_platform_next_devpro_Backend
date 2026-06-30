@@ -60,10 +60,11 @@ export class PasswordResetService {
     if (!user) throw new BadRequestException("User not found");
 
     const token = this.generateOTP();
+    const tokenHash = await bcrypt.hash(token, 10);
     const verification = await this.prisma.verificationToken.create({
       data: {
         userId: user.id,
-        token,
+        tokenHash,
         type: "password_reset",
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
@@ -80,9 +81,25 @@ export class PasswordResetService {
 
   // Reset password
   async resetPassword(token: string, newPassword: string) {
-    const verification = await this.prisma.verificationToken.findFirst({
-      where: { token, used: false },
+    // Fetch candidate password_reset tokens and compare hashes
+    const candidates = await this.prisma.verificationToken.findMany({
+      where: {
+        type: "password_reset",
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
+
+    const verification = await (async () => {
+      for (const cand of candidates) {
+        // eslint-disable-next-line no-await-in-loop
+        const match = await bcrypt.compare(token, (cand as any).tokenHash);
+        if (match) return cand;
+      }
+      return null;
+    })();
 
     if (!verification || verification.type !== "password_reset")
       throw new BadRequestException("Invalid OTP");
@@ -94,7 +111,7 @@ export class PasswordResetService {
 
     await this.prisma.user.update({
       where: { id: verification.userId },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, passwordChangedAt: new Date() },
     });
 
     await this.prisma.verificationToken.update({

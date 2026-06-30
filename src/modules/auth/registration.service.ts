@@ -78,10 +78,11 @@ export class RegistrationService {
     const user = await this.prisma.user.create({ data: createData });
 
     const token = this.generateOTP();
+    const tokenHash = await bcrypt.hash(token, 10);
     const verification = await this.prisma.verificationToken.create({
       data: {
         userId: user.id,
-        token,
+        tokenHash,
         type: "email_verification",
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       },
@@ -98,9 +99,28 @@ export class RegistrationService {
 
   // Verify email
   async verifyEmail(token: string) {
-    const verification = await this.prisma.verificationToken.findFirst({
-      where: { token, used: false },
+    // Since tokenHash is stored, we cannot query by plaintext token.
+    // Fetch recent unused tokens for 'email_verification' and compare hashes.
+    const candidates = await this.prisma.verificationToken.findMany({
+      where: {
+        type: "email_verification",
+        used: false,
+        expiresAt: { gte: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 10,
     });
+
+    const verification = await (async () => {
+      for (const cand of candidates) {
+        // cand.tokenHash exists in DB
+        // compare incoming token with stored hash
+        // eslint-disable-next-line no-await-in-loop
+        const match = await bcrypt.compare(token, (cand as any).tokenHash);
+        if (match) return cand;
+      }
+      return null;
+    })();
 
     if (!verification || verification.type !== "email_verification")
       throw new BadRequestException("Invalid OTP");
@@ -109,9 +129,7 @@ export class RegistrationService {
       throw new BadRequestException("OTP expired");
 
     // ✅ Get user first
-    const user = await this.prisma.user.findUnique({
-      where: { id: verification.userId },
-    });
+    const user = await this.prisma.user.findUnique({ where: { id: verification.userId } });
 
     if (!user) throw new BadRequestException("User not found");
 
@@ -162,10 +180,11 @@ export class RegistrationService {
 
     // Generate new OTP
     const token = this.generateOTP();
+    const tokenHash = await bcrypt.hash(token, 10);
     const verification = await this.prisma.verificationToken.create({
       data: {
         userId: user.id,
-        token,
+        tokenHash,
         type: "email_verification",
         expiresAt: new Date(Date.now() + 5 * 60 * 1000), // OTP 5 min valid
       },

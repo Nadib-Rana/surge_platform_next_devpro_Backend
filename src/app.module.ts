@@ -10,14 +10,14 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { getMailConfig } from "./mail/mail.config";
 import { MailerModule } from "@nestjs-modules/mailer";
 import { UsersModule } from "./users/users.module";
-import { CompaniesModule } from './modules/companies/companies.module';
-import { WorkspacesModule } from './modules/workspaces/workspaces.module';
-import { RssFeedsModule } from './modules/rss-feeds/rss-feeds.module';
-import { RawPostsModule } from './modules/raw-posts/raw-posts.module';
-import { AiPromptsModule } from './modules/ai-prompts/ai-prompts.module';
-import { GeneratedDraftsModule } from './modules/generated-drafts/generated-drafts.module';
-import { PublishingChannelsModule } from './modules/publishing-channels/publishing-channels.module';
-import { QueuesModule } from './modules/queues/queues.module';
+import { CompaniesModule } from "./modules/companies/companies.module";
+import { WorkspacesModule } from "./modules/workspaces/workspaces.module";
+import { RssFeedsModule } from "./modules/rss-feeds/rss-feeds.module";
+import { RawPostsModule } from "./modules/raw-posts/raw-posts.module";
+import { AiPromptsModule } from "./modules/ai-prompts/ai-prompts.module";
+import { GeneratedDraftsModule } from "./modules/generated-drafts/generated-drafts.module";
+import { PublishingChannelsModule } from "./modules/publishing-channels/publishing-channels.module";
+import { QueuesModule } from "./modules/queues/queues.module";
 
 @Module({
   imports: [

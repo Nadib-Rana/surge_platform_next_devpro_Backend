@@ -19,9 +19,22 @@ import { MailModule } from "../../mail/mail.module";
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET") || jwtConstants.secret,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>("JWT_SECRET");
+        if (!secret) {
+          // Fail fast in environments where a secret must be provided
+          throw new Error(
+            "JWT_SECRET environment variable is required for JwtModule configuration",
+          );
+        }
+
+        return {
+          secret,
+          signOptions: {
+            expiresIn: (configService.get<string>("JWT_EXPIRES_IN") || jwtConstants.expiresIn) as any,
+          },
+        };
+      },
     }),
     ContextModule,
     MailModule,
