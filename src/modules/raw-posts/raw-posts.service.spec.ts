@@ -1,18 +1,35 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { RawPostsService } from './raw-posts.service';
 
 describe('RawPostsService', () => {
   let service: RawPostsService;
+  let prisma: any;
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [RawPostsService],
-    }).compile();
+  beforeEach(() => {
+    prisma = {
+      workspace: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'workspace-1' }),
+      },
+      rawPostsBuffer: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'post-1' }]),
+      },
+    };
 
-    service = module.get<RawPostsService>(RawPostsService);
+    service = new RawPostsService(prisma);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('returns buffered posts for the requested historical window', async () => {
+    const result = await service.findBufferedPosts('workspace-1', '7');
+
+    expect(prisma.workspace.findUnique).toHaveBeenCalledWith({ where: { id: 'workspace-1' } });
+    expect(prisma.rawPostsBuffer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: 'workspace-1',
+          status: 'buffered',
+          publishedAt: expect.objectContaining({ gte: expect.any(Date) }),
+        }),
+      }),
+    );
+    expect(result).toEqual([{ id: 'post-1' }]);
   });
 });

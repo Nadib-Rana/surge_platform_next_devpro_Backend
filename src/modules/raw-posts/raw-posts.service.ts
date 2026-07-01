@@ -1,26 +1,33 @@
-import { Injectable } from "@nestjs/common";
-import { CreateRawPostDto } from "./dto/create-raw-post.dto";
-import { UpdateRawPostDto } from "./dto/update-raw-post.dto";
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from "../../common/context/prisma.service";
 
 @Injectable()
 export class RawPostsService {
-  create(createRawPostDto: CreateRawPostDto) {
-    return "This action adds a new rawPost";
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return `This action returns all rawPosts`;
-  }
+  async findBufferedPosts(workspaceId: string, daysInput?: string) {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+    });
+    if (!workspace) {
+      throw new NotFoundException(`Workspace ${workspaceId} not found`);
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} rawPost`;
-  }
+    const days = Number(daysInput ?? "3");
+    const safeDays = Number.isFinite(days) && days > 0 ? days : 3;
+    const since = new Date();
+    since.setDate(since.getDate() - safeDays);
 
-  update(id: number, updateRawPostDto: UpdateRawPostDto) {
-    return `This action updates a #${id} rawPost`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} rawPost`;
+    return this.prisma.rawPostsBuffer.findMany({
+      where: {
+        workspaceId,
+        status: "buffered",
+        publishedAt: {
+          gte: since,
+        },
+      },
+      orderBy: { publishedAt: "desc" },
+      take: 100,
+    });
   }
 }

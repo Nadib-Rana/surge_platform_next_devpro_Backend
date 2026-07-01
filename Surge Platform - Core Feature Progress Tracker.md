@@ -2,12 +2,13 @@
 ---
 
 # 🚀 Surge Platform - Core Feature Progress Tracker
+* [x] **Workspace RSS CRUD Controller:** প্রতিটি ওয়ার্কস্পেসের আন্ডারে আরএসএস ফিড যোগ, রিমুভ এবং ভিউ করার এন্ডপয়েন্ট তৈরি।
+* [x] **Subscription Tier Guard Rail:** ইউজার যখনই নতুন ফিড এড করতে যাবে, তার কারেন্ট প্ল্যান টায়ার চেক করা (`starter`: 5, `pro`: 20, `business`: 50+) এবং লিমিট ক্রস করলে ব্লক করা।
 
-### 📑 Tech Stack & Infrastructure Context
 
-* **Runtime & Framework:** Bun + NestJS (TypeScript)
-* **Database & ORM:** PostgreSQL + Prisma ORM (Native UUID)
-* **Queue System:** BullMQ + Redis Distributed Lock Engine
+* [x] **Customer-Controlled Fetch Frequency:** `Workspace` টেবিলের `queue_config (Json)` কলামে ইউজারের কাস্টম স্ক্র্যাপিং ফ্রিকোয়েন্সি (যেমন: প্রতি ১, ৬, বা ১২ ঘণ্টা) সেভ করা।
+
+* [x] **Dynamic BullMQ Repeatable Jobs Scheduler:** ক্রন জবের ওপরে ক্লায়েন্টের চয়েস ইমপ্যাক্ট করানোর জন্য, ফ্রন্টএন্ড থেকে ফ্রিকোয়েন্সি চেঞ্জ হওয়া মাত্রই রেডিস কিউ ক্রন ডায়নামিকালি রিমুভ ও রি-রেজিস্টার করার মেকানিজম।
 
 
 * **Object Storage:** MinIO S3-Compatible Storage (Presigned URLs Architecture)
@@ -42,31 +43,31 @@
 
 ---
 
-## 🟨 Module 2: Dynamic RSS Ingestion Engine `[STATUS: PENDING]`
+## 🟩 Module 2: Dynamic RSS Ingestion Engine `[STATUS: 100% COMPLETE]`
 
-* [ ] **Workspace RSS CRUD Controller:** প্রতিটি ওয়ার্কস্পেসের আন্ডারে আরএসএস ফিড যোগ, রিমুভ এবং ভিউ করার এন্ডপয়েন্ট তৈরি।
-* [ ] **Subscription Tier Guard Rail:** ইউজার যখনই নতুন ফিড এড করতে যাবে, তার কারেন্ট প্ল্যান টায়ার চেক করা (`starter`: 5, `pro`: 20, `business`: 50+) এবং লিমিট ক্রস করলে ব্লক করা।
+* [x] **Workspace RSS CRUD Controller:** `POST /workspaces/:workspaceId/rss-sources`, `GET /workspaces/:workspaceId/rss-sources`, `DELETE /workspaces/:workspaceId/rss-sources/:sourceId` এন্ডপয়েন্ট তৈরি করা হয়েছে — প্রতিটি ফিড `workspaceId` দিয়ে লিংক থাকে এবং `status` ফিল্ড দিয়ে soft-delete সমর্থন করা হয়।
 
+* [x] **Subscription Tier Guard Rail:** ওয়ার্কস্পেসের কোম্পানি-ওনারের সাবস্ক্রিপশন টায়ার অনুযায়ী লিমিট চেক করা হয় (starter=5, pro=20, business=50) — লিমিট অতিক্রম করলে `403 Forbidden` রিটার্ন করে।
 
-* [ ] **Customer-Controlled Fetch Frequency:** `Workspace` টেবিলের `queue_config (Json)` কলামে ইউজারের কাস্টম স্ক্র্যাপিং ফ্রিকোয়েন্সি (যেমন: প্রতি ১, ৬, বা ১২ ঘণ্টা) সেভ করা।
+* [x] **Customer-Controlled Fetch Frequency:** `PATCH /workspaces/:workspaceId/queue-config` এন্ডপয়েন্ট তৈরি করা হয়েছে; `queue_config` JSON-এ `{ fetchFrequencyHours, postingTimes }` সেভ হয় এবং ভ্যালিডেশন করা হয়।
 
+* [x] **Dynamic BullMQ Repeatable Jobs Scheduler:** `RssSchedulerService` তৈরি করা হয়েছে — নতুন ফিড বা কনফিগ পরিবর্তনে পুরনো repeatable job রিমুভ করে নতুন `every`-based repeatable job রেজিস্টার করে; job payload এ `workspaceId`, `feedUrl`, `feedId` থাকে।
 
-* [ ] **Dynamic BullMQ Repeatable Jobs Scheduler:** ক্রন জবের ওপরে ক্লায়েন্টের চয়েস ইমপ্যাক্ট করানোর জন্য, ফ্রন্টএন্ড থেকে ফ্রিকোয়েন্সি চেঞ্জ হওয়া মাত্রই রেডিস কিউ ক্রন ডায়নামিকালি রিমুভ ও রি-রেজিস্টার করার মেকানিজম।
+* [x] **Boot & Resilience:** অ্যাপ বুটে সক্রিয় সব ফিড স্ক্যান করে সংশ্লিষ্ট repeatable jobs নিশ্চিত করে; job নামকরণ ও repeatable-key হ্যান্ডলিং করা হয়েছে যাতে duplicate jobs না হয় এবং রিমোভাল নির্ভরযোগ্য হয়।
+
+* [x] **Operational safeguards:** soft-delete (status='inactive') এর মাধ্যমে দ্রুত ডিকটিভেশন; hard-delete `force=true` অপশনে সমর্থন; subscription fallback default হিসেবে `starter` ধরা হয় যদি সাবস্ক্রিপশন রেকর্ড না পাওয়া যায়।
 
 
 
 ---
 
-## 🟨 Module 3: Smart Deduplication & Raw Posts Buffer `[STATUS: PENDING]`
+## 🟩 Module 3: Smart Deduplication & Raw Posts Buffer `[STATUS: 100% COMPLETE]`
 
-* [ ] **Idempotent Scraper Middleware:** আরএসএস ফিড স্ক্র্যাপ করার সময় আর্টিকেলের মেইন ইউআরএল-কে SHA-256 হ্যাশ করে `url_hash` বের করা।
-* [ ] **Database Unique Constraint Guard:** জেনারেট হওয়া `url_hash` ডাটাবেজের ইউনিক কলামের সাথে চেক করে ডুপ্লিকেট ডেটা হলে স্ক্র্যাপিং প্রসেস থেকে তাৎক্ষণিক স্কিপ করা।
-
-
-* [ ] **Raw Post Buffer Storage:** নতুন ইউনিক আর্টিকেলগুলোকে `status: "buffered"` ফ্ল্যাগ দিয়ে ইনজেস্ট করা।
-
-
-* [ ] **Historical Window Filter Logic:** প্রিজমার `published_at` ফিল্ডের ওপর `gte` (Greater Than or Equal) কুয়েরি চালিয়ে ড্যাশবোর্ডে গত ৩ দিন বা ৭ দিনের কাঁচা বাফারের ডেটা পুশ ও ফিল্টারিং লজিক।
+* [x] **Idempotent Scraper Middleware:** আরএসএস ফিড স্ক্র্যাপ করার সময় আর্টিকেলের মেইন ইউআরএল-কে SHA-256 হ্যাশ করে `url_hash` বের করা।
+* [x] **Database Unique Constraint Guard:** জেনারেট হওয়া `url_hash` ডাটাবেজের ইউনিক কলামের সাথে চেক করে ডুপ্লিকেট ডেটা হলে স্ক্র্যাপিং প্রসেস থেকে তাৎক্ষণিক স্কিপ করা।
+* [x] **Raw Post Buffer Storage:** নতুন ইউনিক আর্টিকেলগুলোকে `status: "buffered"` ফ্ল্যাগ দিয়ে ইনজেস্ট করা।
+* [x] **Historical Window Filter Logic:** প্রিজমার `published_at` ফিল্ডের ওপর `gte` (Greater Than or Equal) কুয়েরি চালিয়ে ড্যাশবোর্ডে গত ৩ দিন বা ৭ দিনের কাঁচা বাফারের ডেটা পুশ ও ফিল্টারিং লজিক।
+* [x] **Production Readiness:** `GET /workspaces/:workspaceId/buffer-posts` এন্ডপয়েন্ট, BullMQ worker, এবং deduplication flow 100% complete এবং রেডি।
 
 
 

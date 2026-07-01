@@ -14,6 +14,15 @@ services:
         networks:
             - surge_platform_network
 
+    redis:
+        image: redis:alpine
+        container_name: surge_platform_redis
+        restart: unless-stopped
+        ports:
+            - '6379:6379'
+        networks:
+            - surge_platform_network
+
 networks:
     surge_platform_network:
         driver: bridge
