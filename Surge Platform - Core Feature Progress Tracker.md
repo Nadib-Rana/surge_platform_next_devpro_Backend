@@ -1,7 +1,7 @@
 
 ---
 
-# 🚀 Surge Platform - Core Feature Progress Tracker
+#  Surge Platform - Core Feature Progress Tracker
 * [x] **Workspace RSS CRUD Controller:** প্রতিটি ওয়ার্কস্পেসের আন্ডারে আরএসএস ফিড যোগ, রিমুভ এবং ভিউ করার এন্ডপয়েন্ট তৈরি।
 * [x] **Subscription Tier Guard Rail:** ইউজার যখনই নতুন ফিড এড করতে যাবে, তার কারেন্ট প্ল্যান টায়ার চেক করা (`starter`: 5, `pro`: 20, `business`: 50+) এবং লিমিট ক্রস করলে ব্লক করা।
 
@@ -73,48 +73,44 @@
 
 ---
 
-## 🟨 Module 4: AI Creative Engine & Asset Pipeline `[STATUS: PENDING]`
+## 🟩 Module 4: AI Creative Engine & Asset Pipeline `[STATUS: IN_PROGRESS]`
 
-* [ ] **Prompt Version Control Matrix:** `AiPrompt` এবং `PromptVersion` টেবিল ডিজাইন ও আর্কিটেকচার, যা এআই প্রম্পটের হিস্ট্রি এবং টোন ট্র্যাক রাখবে।
-
-
-* [ ] **Batch Digest Aggregator:** বাফারে থাকা একাধিক র-আর্টিকেলকে একসাথে কম্বাইন করে Claude এপিআই-তে পাঠিয়ে ১টি ট্রেন্ডিং "Batch Digest" সোশ্যাল মিডিয়া কন্টেন্ট ও টেক্সট রেডি করা।
+* [x] **Prompt Version Control Matrix:** `AiPrompt` এবং `PromptVersion` টেবিল ডিজাইন ও আর্কিটেকচার, যা এআই প্রম্পটের হিস্ট্রি এবং টোন ট্র্যাক রাখবে।
 
 
-* [ ] **API Throttling Guard (Anti-Lock):** এআই টেক্সট সফলভাবে জেনারেট হওয়ার ঠিক পর ৩ সেকেন্ডের একটি কৃত্তিম সেফটি ব্রেক বা `Delay` মেকানিজম রান করা, যেন রেট লিমিট বা আইপি ব্লক না হয়।
+* [x] **Batch Digest Aggregator:** বাফারে থাকা একাধিক র-আর্টিকেলকে একসাথে কম্বাইন করে OpenAI API-তে পাঠিয়ে ১টি ট্রেন্ডিং "Batch Digest" সোশ্যাল মিডিয়া কন্টেন্ট ও টেক্সট রেডি করা।
 
 
-* [ ] **DALL-E 3 Asset Downloader:** সোশ্যাল মিডিয়া কন্টেন্টের জন্য OpenAI DALL-E 3 দিয়ে হাই-কোয়ালিটি ইমেজ জেনারেট করা।
-* [ ] **MinIO S3 Bucket Pipeline:** জেনারেট হওয়া ইমেজ ওয়ান-টাইম ডাউনলোড করে নিজস্ব সিকিউর **MinIO Object Storage**-এ পুশ করা এবং ড্রাফটে সেভ করার জন্য সিকিউর প্রিসাইন্ড ইউআরএল (Presigned URL) জেনারেট করা।
+* [x] **API Throttling Guard (Anti-Lock):** এআই টেক্সট সফলভাবে জেনারেট হওয়ার ঠিক পর ৩ সেকেন্ডের একটি কৃত্তিম সেফটি ব্রেক বা `Delay` মেকানিজম রান করা, যেন রেট লিমিট বা আইপি ব্লক না হয়।
 
 
-
----
-
-## 🟨 Module 5 & 6: Autopilot Scheduler & Retries `[STATUS: PENDING]`
-
-* [ ] **Autopilot Engine Sync:** কাস্টমার ড্যাশবোর্ড থেকে সিলেক্ট করা ডেইলি পোস্টিং শিডিউল (যেমন: প্রতিদিন সকাল ৯টা ও বিকাল ৫টা) `queue_config (Json)` থেকে রিড করা।
-
-
-* [ ] **Idempotency Distributed Lock:** একাধিক ওয়ার্কার রান থাকলেও যেন একই কন্টেন্ট সোশ্যাল মিডিয়ায় ডাবল পাবলিশ না হয়, সেজন্য Redis TTL Lock সচল করা।
-
-
-* [ ] **FailedPostsQueue & Exponential Backoff:** থার্ড-পার্টি সোশ্যাল এপিআই ডাউন থাকলে কন্টেন্ট `FailedPostsQueue`-এ পাঠানো এবং BullMQ ব্যাকঅফ লজিক দিয়ে প্রতিবার দ্বিগুণ সময় বিরতিতে মোট ৩ বার অটো-রিট্রাই করা।
+* [x] **DALL-E 3 Asset Downloader:** সোশ্যাল মিডিয়া কন্টেন্টের জন্য OpenAI DALL-E 3 দিয়ে হাই-কোয়ালিটি ইমেজ জেনারেট করা।
+* [x] **MinIO S3 Bucket Pipeline:** জেনারেট হওয়া ইমেজ ওয়ান-টাইম ডাউনলোড করে নিজস্ব সিকিউর **MinIO Object Storage**-এ পুশ করা এবং ড্রাফটে সেভ করার জন্য সিকিউর প্রিসাইন্ড ইউআরএল (Presigned URL) জেনারেট করা।
 
 
 
 ---
 
-## 🟨 Module 7: Pluggable Omni-Channel Dispatcher `[STATUS: PENDING]`
+## 🟩 Module 5 & 6: Autopilot Scheduler & Retries [STATUS: 100% COMPLETE]
 
-* [ ] **Generic Core Dispatcher Architecture:** একটি বেস বা ইন্টারফেস সার্ভিস ডিজাইন করা, যাতে ডাটাবেজ স্কিমা টাচ না করেই যেকোনো নতুন ওমনি-চ্যানেল এপিআই প্লাগ-ইন করা যায়।
-* [ ] **WordPress Rest API Engine:** কাস্টমারের নিজস্ব ওয়ার্ডপ্রেস ব্লগে ফরম্যাটেড কন্টেন্ট ও ফিচারড ইমেজ অটো-পাবলিশিং।
-
-
-* [ ] **LinkedIn Graph API Engine:** কাস্টমারের পার্সোনাল প্রোফাইল বা কোম্পানির অফিসিয়াল পেজে কন্টেন্ট ডিসপ্যাচ।
+* [x] **Autopilot Engine Sync:** কাস্টমার ড্যাশবোর্ড থেকে সিলেক্ট করা ডেইলি পোস্টিং শিডিউল (যেমন: প্রতিদিন সকাল ৯টা ও বিকাল ৫টা) `queue_config (Json)` থেকে রিড করা এবং BullMQ টাইম-ব্যাজড repeatable jobs হিসেবে সিঙ্ক করা।
 
 
-* [ ] **Facebook Graph API Engine:** ফেসবুক বিজনেস পেজ এবং গ্রুপে কন্টেন্ট এবং ইমেজ পুশ করার সাপোর্ট।
-* [ ] **Future Channel Extensibility:** ফিউচারে কাস্টমারের ডিমান্ড অনুযায়ী X (Twitter), Instagram বা Threads-এর অফিশিয়াল SDK মাত্র ১টি ফাইলে এক্সটেন্ড করার সুবিধা রাখা।
+* [x] **Idempotency Distributed Lock:** একাধিক ওয়ার্কার রান থাকলেও যেন একই কন্টেন্ট সোশ্যাল মিডিয়ায় ডাবল পাবলিশ না হয়, সেজন্য Redis TTL Lock (`autopilot-lock:<draftId>`) সক্রিয় করা হয়েছে।
+
+
+* [x] **FailedPostsQueue & Exponential Backoff:** থার্ড-পার্টি সোশ্যাল এপিআই ডাউন থাকলে কন্টেন্ট `FailedPostsQueue`-এ পাঠানো এবং BullMQ ব্যাকঅফ লজিক দিয়ে ৩টি অটো-রিট্রাই চালানো হয়েছে।
+
+
+
+---
+
+## 🟩 Module 7: Pluggable Omni-Channel Dispatcher [STATUS: 100% COMPLETE]
+
+* [x] **Generic Core Dispatcher Architecture:** একটি বেস বা ইন্টারফেস সার্ভিস ডিজাইন করা, যাতে ডাটাবেজ স্কিমা টাচ না করেই যেকোনো নতুন ওমনি-চ্যানেল এপিআই প্লাগ-ইন করা যায়।
+* [x] **WordPress Rest API Engine:** কাস্টমারের নিজস্ব ওয়ার্ডপ্রেস ব্লগে ফরম্যাটেড কন্টেন্ট ও ফিচারড ইমেজ অটো-পাবলিশিং।
+* [x] **LinkedIn Graph API Engine:** কাস্টমারের পার্সোনাল প্রোফাইল বা কোম্পানির অফিসিয়াল পেজে কন্টেন্ট ডিসপ্যাচ।
+* [x] **Facebook Graph API Engine:** ফেসবুক বিজনেস পেজ এবং গ্রুপে কন্টেন্ট এবং ইমেজ পুশ করার সাপোর্ট।
+* [x] **Future Channel Extensibility:** ফিউচারে কাস্টমারের ডিমান্ড অনুযায়ী X (Twitter), Instagram বা Threads-এর অফিশিয়াল SDK মাত্র ১টি ফাইলে এক্সটেন্ড করার সুবিধা রাখা।
 
 ---

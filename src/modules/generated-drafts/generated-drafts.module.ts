@@ -5,5 +5,6 @@ import { GeneratedDraftsController } from "./generated-drafts.controller";
 @Module({
   controllers: [GeneratedDraftsController],
   providers: [GeneratedDraftsService],
+  exports: [GeneratedDraftsService],
 })
 export class GeneratedDraftsModule {}

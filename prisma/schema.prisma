@@ -201,6 +201,7 @@ model PromptVersion {
   aiPrompt               AiPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
   versionTag             String   @map("version_tag")
   systemPrompt           String   @db.Text @map("system_prompt")
+  tone                   String?  @map("tone")
   isActive               Boolean  @default(false) @map("is_active")
   createdAt              DateTime @default(now()) @map("created_at")
 

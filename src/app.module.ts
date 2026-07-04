@@ -19,6 +19,7 @@ import { AiPromptsModule } from "./modules/ai-prompts/ai-prompts.module";
 import { GeneratedDraftsModule } from "./modules/generated-drafts/generated-drafts.module";
 import { PublishingChannelsModule } from "./modules/publishing-channels/publishing-channels.module";
 import { QueuesModule } from "./modules/queues/queues.module";
+import { AutopilotModule } from "./modules/autopilot/autopilot.module";
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { QueuesModule } from "./modules/queues/queues.module";
     GeneratedDraftsModule,
     PublishingChannelsModule,
     QueuesModule,
+    AutopilotModule,
   ],
   controllers: [AppController],
   providers: [
