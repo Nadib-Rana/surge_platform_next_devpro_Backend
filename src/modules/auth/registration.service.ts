@@ -9,6 +9,7 @@ import { randomInt } from "crypto";
 import { RegisterDto } from "./dto/register.dto";
 import { MailtrapService } from "../../mail/mailtrap.service";
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
 
 @Injectable()
@@ -17,6 +18,7 @@ export class RegistrationService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailtrapService: MailtrapService,
+    private configService: ConfigService,
   ) {}
 
   // Helper: generate 6-digit numeric OTP
@@ -33,6 +35,17 @@ export class RegistrationService {
     otp: string;
     userName?: string;
   }): Promise<void> {
+    const isDevelopment =
+      this.configService.get<string>("NODE_ENV") === "development";
+    const mailtrapToken = this.configService.get<string>("MAILTRAP_TOKEN");
+
+    if (isDevelopment || !mailtrapToken) {
+      console.log(
+        `[LOCAL DEBUG] OTP for ${params.email} is: ${params.otp}`,
+      );
+      return;
+    }
+
     const maxAttempts = 3;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {

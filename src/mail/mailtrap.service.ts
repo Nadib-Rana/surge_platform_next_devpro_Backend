@@ -132,7 +132,19 @@ export class MailtrapService {
     html: string;
     text?: string;
   }): Promise<void> {
+    const isDevelopment =
+      this.configService.get<string>("NODE_ENV") === "development";
+
     if (!this.token) {
+      if (isDevelopment) {
+        this.logger.warn(
+          "MAILTRAP_TOKEN not configured and running in development mode. Logging email instead of sending.",
+        );
+        this.logger.log(`Email to ${params.to}: ${params.subject}`);
+        this.logger.log(params.text ?? params.html);
+        return;
+      }
+
       throw new Error(
         "Mailtrap token not configured. Set MAILTRAP_TOKEN in .env",
       );

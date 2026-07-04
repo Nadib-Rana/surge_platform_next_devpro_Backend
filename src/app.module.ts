@@ -6,6 +6,7 @@ import { ContextModule } from "./common/context/context.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
 import { ResponseStandardizationInterceptor } from "./common/interceptors/response-standardization.interceptor";
+import { HttpLoggingInterceptor } from "./common/interceptors/http-logging.interceptor";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { getMailConfig } from "./mail/mail.config";
@@ -61,6 +62,10 @@ import { AutopilotModule } from "./modules/autopilot/autopilot.module";
     {
       provide: APP_INTERCEPTOR,
       useClass: ResponseStandardizationInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpLoggingInterceptor,
     },
     Reflector,
   ],
