@@ -4,17 +4,44 @@ import { AiPromptsService } from './ai-prompts.service';
 import { PrismaService } from '../../common/context/prisma.service';
 import { AiAssetService } from './ai-asset.service';
 
+const mockOpenAIChatCreate = jest.fn();
+const mockAnthropicMessagesCreate = jest.fn();
+
+jest.mock('openai', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: mockOpenAIChatCreate,
+      },
+    },
+  })),
+}));
+
+jest.mock('@anthropic-ai/sdk', () => ({
+  Anthropic: jest.fn().mockImplementation(() => ({
+    messages: {
+      create: mockAnthropicMessagesCreate,
+    },
+  })),
+}));
+
 describe('AiPromptsService', () => {
   let service: AiPromptsService;
   let prisma: {
     aiPrompt: { create: jest.Mock };
-    promptVersion: { create: jest.Mock };
+    promptVersion: { create: jest.Mock; findFirst: jest.Mock };
+    rawPostsBuffer: { findMany: jest.Mock };
+    generatedDraft: { create: jest.Mock };
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     prisma = {
       aiPrompt: { create: jest.fn() },
-      promptVersion: { create: jest.fn() },
+      promptVersion: { create: jest.fn(), findFirst: jest.fn() },
+      rawPostsBuffer: { findMany: jest.fn() },
+      generatedDraft: { create: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -24,7 +51,11 @@ describe('AiPromptsService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string) => (key === 'OPENAI_API_KEY' ? 'test-key' : undefined)),
+            get: jest.fn((key: string) => {
+              if (key === 'OPENAI_API_KEY') return 'test-key';
+              if (key === 'ANTHROPIC_API_KEY') return 'anthropic-key';
+              return undefined;
+            }),
           },
         },
         {
@@ -66,5 +97,25 @@ describe('AiPromptsService', () => {
       }),
     );
     expect(result.prompt.id).toBe('prompt-1');
+  });
+
+  it('uses Anthropic Claude when the request targets a Claude model', async () => {
+    prisma.rawPostsBuffer.findMany.mockResolvedValue([{ title: 'Launch', rawContent: 'Body' }]);
+    prisma.promptVersion.findFirst.mockResolvedValue({
+      id: 'version-1',
+      systemPrompt: 'You are a copywriter',
+      tone: 'professional',
+      aiPrompt: { workspaceId: 'workspace-1' },
+    });
+    prisma.generatedDraft.create.mockResolvedValue({ id: 'draft-1' });
+
+    mockAnthropicMessagesCreate.mockResolvedValue({
+      content: [{ type: 'text', text: 'Claude digest' }],
+    });
+
+    await service.generateBatchDigest({ workspaceId: 'workspace-1', model: 'claude-3-5-sonnet-latest' });
+
+    expect(mockAnthropicMessagesCreate).toHaveBeenCalled();
+    expect(prisma.generatedDraft.create).toHaveBeenCalled();
   });
 });

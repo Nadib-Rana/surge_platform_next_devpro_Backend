@@ -2,193 +2,1083 @@
   "info": {
     "name": "Surge Platform API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "_postman_id": "9b6f6d2a-0000-4c2d-8888-abcdef123456"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3000" },
-    { "key": "jwtToken", "value": "" },
-    { "key": "workspaceId", "value": "11111111-aaaa-4bbb-8ccc-abcdef123456" },
-    { "key": "sourceId", "value": "33333333-cccc-4ddd-8eee-abcdef999999" },
-    { "key": "rawPostId", "value": "44444444-dddd-4eee-8fff-abcdef000000" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "jwtToken",
+      "value": ""
+    },
+    {
+      "key": "workspaceId",
+      "value": "11111111-aaaa-4bbb-8ccc-abcdef123456"
+    },
+    {
+      "key": "companyId",
+      "value": "22222222-bbbb-4ccc-8ddd-abcdef654321"
+    },
+    {
+      "key": "queueId",
+      "value": "33333333-cccc-4ddd-8eee-abcdef999999"
+    },
+    {
+      "key": "sourceId",
+      "value": "44444444-dddd-4eee-8fff-abcdef000000"
+    },
+    {
+      "key": "rawPostId",
+      "value": "55555555-eeee-4fff-9aaa-abcdef111111"
+    },
+    {
+      "key": "generatedDraftId",
+      "value": "66666666-ffff-4aaa-9bbb-abcdef222222"
+    },
+    {
+      "key": "publishingChannelId",
+      "value": "77777777-aaaa-4bbb-9ccc-abcdef333333"
+    },
+    {
+      "key": "rssFeedId",
+      "value": "88888888-bbbb-4ccc-9ddd-abcdef444444"
+    },
+    {
+      "key": "aiPromptId",
+      "value": "99999999-cccc-4ddd-9eee-abcdef555555"
+    },
+    {
+      "key": "promptVersionId",
+      "value": "aaaaaaaa-dddd-4eee-9fff-abcdef666666"
+    }
   ],
   "item": [
     {
-      "name": "Module 1: Auth & Onboarding",
+      "name": "Core",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth & Account",
       "item": [
         {
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secret123\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth","register"] }
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
           }
         },
         {
-          "name": "Verify Email (OTP)",
+          "name": "Verify Email",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"token\": \"123456\"\n}" },
-            "url": { "raw": "{{baseUrl}}/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["auth","verify-email"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            }
           }
         },
         {
           "name": "Resend OTP",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" },
-            "url": { "raw": "{{baseUrl}}/auth/resend-otp", "host": ["{{baseUrl}}"], "path": ["auth","resend-otp"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "resend-otp"
+              ]
+            }
           }
         },
         {
           "name": "Login",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secret123\"\n}" },
-            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth","login"] }
-          },
-          "response": [
-            {
-              "name": "Sample login response",
-              "originalRequest": {},
-              "status": "OK",
-              "code": 200,
-              "_body": "{\n  \"accessToken\": \"eyJhbGci...exampletoken...\",\n  \"expiresIn\": 3600\n}"
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
-          ]
+          }
         },
         {
-          "name": "Logout (protected)",
+          "name": "Logout",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
             ],
-            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth","logout"] }
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
           }
         },
         {
           "name": "Request Password Reset",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"user@example.com\"\n}" },
-            "url": { "raw": "{{baseUrl}}/auth/request-password-reset", "host": ["{{baseUrl}}"], "path": ["auth","request-password-reset"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/request-password-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "request-password-reset"
+              ]
+            }
           }
         },
         {
           "name": "Reset Password",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"token\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}" },
-            "url": { "raw": "{{baseUrl}}/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["auth","reset-password"] }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"123456\",\n  \"newPassword\": \"newpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            }
           }
         }
       ]
     },
     {
-      "name": "Module 2 & 3: RSS Engine & Buffer",
+      "name": "Users",
       "item": [
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Companies",
+      "item": [
+        {
+          "name": "Create Company",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Company By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies",
+                "{{companyId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Company",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies",
+                "{{companyId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Company",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/companies/{{companyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "companies",
+                "{{companyId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Queues",
+      "item": [
+        {
+          "name": "Create Queue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/queues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "queues"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Queues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/queues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "queues"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Queue By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/queues/{{queueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "queues",
+                "{{queueId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Queue",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/queues/{{queueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "queues",
+                "{{queueId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Queue",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/queues/{{queueId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "queues",
+                "{{queueId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workspaces & RSS",
+      "item": [
+        {
+          "name": "Update Queue Config",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "queue-config"
+              ]
+            }
+          }
+        },
         {
           "name": "Create RSS Source",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"feedUrl\": \"https://techcrunch.com/feed/\",\n  \"description\": \"Tech news feed\"\n}" },
-            "url": { "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources", "host": ["{{baseUrl}}"], "path": ["workspaces","{{workspaceId}}","rss-sources"] }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedUrl\": \"https://techcrunch.com/feed/\",\n  \"description\": \"Tech news feed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "rss-sources"
+              ]
+            }
           }
         },
         {
           "name": "List RSS Sources",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
-            "url": { "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources", "host": ["{{baseUrl}}"], "path": ["workspaces","{{workspaceId}}","rss-sources"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "rss-sources"
+              ]
+            }
           }
         },
         {
-          "name": "Delete RSS Source (soft/hard)",
+          "name": "Delete RSS Source",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
-            "url": { "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}?force=true", "host": ["{{baseUrl}}"], "path": ["workspaces","{{workspaceId}}","rss-sources","{{sourceId}}"], "query": [{ "key": "force", "value": "true" }] }
-          }
-        },
-        {
-          "name": "Update Queue Config",
-          "request": {
-            "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"]\n}" },
-            "url": { "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config", "host": ["{{baseUrl}}"], "path": ["workspaces","{{workspaceId}}","queue-config"] }
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}?force=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "rss-sources",
+                "{{sourceId}}"
+              ],
+              "query": [
+                {
+                  "key": "force",
+                  "value": "true"
+                }
+              ]
+            }
           }
         },
         {
-          "name": "Get Buffered Posts (workspace)",
+          "name": "Get Buffered Posts",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
-            "url": { "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts?days=3", "host": ["{{baseUrl}}"], "path": ["workspaces","{{workspaceId}}","buffer-posts"], "query": [{ "key": "days", "value": "3" }] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts?days=3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "buffer-posts"
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "3"
+                }
+              ]
+            }
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "Raw Posts",
+      "item": [
         {
-          "name": "Get All Raw Posts",
+          "name": "List Raw Posts",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
-            "url": { "raw": "{{baseUrl}}/raw-posts", "host": ["{{baseUrl}}"], "path": ["raw-posts"] }
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/raw-posts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "raw-posts"
+              ]
+            }
           }
         },
         {
           "name": "Get Raw Post By ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }],
-            "url": { "raw": "{{baseUrl}}/raw-posts/{{rawPostId}}", "host": ["{{baseUrl}}"], "path": ["raw-posts","{{rawPostId}}"] }
-          }
-        },
-        {
-          "name": "Create RSS Feed (admin) - aligns to Prisma RssFeed",
-          "request": {
-            "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"workspaceId\": \"11111111-aaaa-4bbb-8ccc-abcdef123456\",\n  \"feedUrl\": \"https://techcrunch.com/feed/\"\n}" },
-            "url": { "raw": "{{baseUrl}}/rss-feeds", "host": ["{{baseUrl}}"], "path": ["rss-feeds"] }
+            "url": {
+              "raw": "{{baseUrl}}/raw-posts/{{rawPostId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "raw-posts",
+                "{{rawPostId}}"
+              ]
+            }
           }
         }
       ]
     },
     {
-      "name": "Module 4 & 5 & 7: AI Creative & Dispatch Engine",
+      "name": "Dispatcher",
+      "item": [
+        {
+          "name": "Publish Dispatch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"wordpress\",\n  \"title\": \"AI Daily Digest: Top Stories\",\n  \"content\": \"<h1>Today's Highlights</h1><p>Automated digest content goes here.</p>\",\n  \"images\": [\"https://images.example.com/ai-generated-1.jpg\"],\n  \"credentials\": {\n    \"apiUrl\": \"https://example.com\",\n    \"accessToken\": \"wp_token_here\",\n    \"target\": \"\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workspaces",
+                "{{workspaceId}}",
+                "dispatcher",
+                "publish"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generated Drafts",
+      "item": [
+        {
+          "name": "Create Generated Draft",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"rawPostId\": \"{{rawPostId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"socialPlainText\": \"Check out this article: https://techcrunch.com/some-article\",\n  \"imageUrl\": \"https://images.example.com/ai-generated-1.jpg\",\n  \"generationType\": \"manual_on_demand\",\n  \"status\": \"draft\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/generated-drafts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generated-drafts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Generated Drafts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/generated-drafts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generated-drafts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Generated Draft By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generated-drafts",
+                "{{generatedDraftId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Generated Draft",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generated-drafts",
+                "{{generatedDraftId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Generated Draft",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "generated-drafts",
+                "{{generatedDraftId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Publishing Channels",
+      "item": [
+        {
+          "name": "Create Publishing Channel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/publishing-channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "publishing-channels"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Publishing Channels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/publishing-channels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "publishing-channels"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Publishing Channel By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "publishing-channels",
+                "{{publishingChannelId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Publishing Channel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "publishing-channels",
+                "{{publishingChannelId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Publishing Channel",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "publishing-channels",
+                "{{publishingChannelId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RSS Feeds",
+      "item": [
+        {
+          "name": "Create RSS Feed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rss-feeds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rss-feeds"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List RSS Feeds",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/rss-feeds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rss-feeds"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get RSS Feed By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/rss-feeds/{{rssFeedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rss-feeds",
+                "{{rssFeedId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update RSS Feed",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rss-feeds/{{rssFeedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rss-feeds",
+                "{{rssFeedId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete RSS Feed",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/rss-feeds/{{rssFeedId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rss-feeds",
+                "{{rssFeedId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Prompts",
       "item": [
         {
           "name": "Create AI Prompt",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"workspaceId\": \"11111111-aaaa-4bbb-8ccc-abcdef123456\",\n  \"name\": \"Daily Tech Digest\",\n  \"description\": \"Combine top items into a digest\"\n}" },
-            "url": { "raw": "{{baseUrl}}/ai-prompts", "host": ["{{baseUrl}}"], "path": ["ai-prompts"] }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"name\": \"Daily Tech Digest\",\n  \"description\": \"Combine top items into a digest\",\n  \"systemPrompt\": \"You are a helpful assistant.\",\n  \"versionTag\": \"v1\",\n  \"tone\": \"professional\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ai-prompts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-prompts"
+              ]
+            }
           }
         },
         {
@@ -196,62 +1086,101 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"workspaceId\": \"11111111-aaaa-4bbb-8ccc-abcdef123456\",\n  \"limit\": 5,\n  \"model\": \"gpt-4o-mini\"\n}" },
-            "url": { "raw": "{{baseUrl}}/ai-prompts/batch-digest", "host": ["{{baseUrl}}"], "path": ["ai-prompts","batch-digest"] }
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"model\": \"gpt-4o-mini\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ai-prompts/batch-digest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-prompts",
+                "batch-digest"
+              ]
+            }
           }
         },
         {
           "name": "List AI Prompts",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }], "url": { "raw": "{{baseUrl}}/ai-prompts", "host": ["{{baseUrl}}"], "path": ["ai-prompts"] } }
-        },
-        {
-          "name": "Create Generated Draft",
           "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"workspaceId\": \"11111111-aaaa-4bbb-8ccc-abcdef123456\",\n  \"promptVersionId\": \"22222222-bbbb-4ccc-8ddd-abcdef654321\",\n  \"socialPlainText\": \"Check out this article: https://techcrunch.com/some-article\",\n  \"imageUrl\": \"https://images.example.com/ai-generated-1.jpg\",\n  \"generationType\": \"manual_on_demand\"\n}" },
-            "url": { "raw": "{{baseUrl}}/generated-drafts", "host": ["{{baseUrl}}"], "path": ["generated-drafts"] }
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai-prompts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-prompts"
+              ]
+            }
           }
         },
         {
-          "name": "List Generated Drafts",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }], "url": { "raw": "{{baseUrl}}/generated-drafts", "host": ["{{baseUrl}}"], "path": ["generated-drafts"] } }
-        },
-        {
-          "name": "Create Publishing Channel (workspace)",
+          "name": "Get AI Prompt By ID",
           "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"workspaceId\": \"11111111-aaaa-4bbb-8ccc-abcdef123456\",\n  \"platform\": \"wordpress\",\n  \"encryptedCredentials\": \"{\\\"siteUrl\\\":\\\"https://example.com\\\",\\\"accessToken\\\":\\\"token_here\\\"}\"\n}" },
-            "url": { "raw": "{{baseUrl}}/publishing-channels", "host": ["{{baseUrl}}"], "path": ["publishing-channels"] }
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai-prompts/{{aiPromptId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-prompts",
+                "{{aiPromptId}}"
+              ]
+            }
           }
         },
         {
-          "name": "List Publishing Channels",
-          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{jwtToken}}" }], "url": { "raw": "{{baseUrl}}/publishing-channels", "host": ["{{baseUrl}}"], "path": ["publishing-channels"] } }
-        },
-        {
-          "name": "Dispatch: Publish (protected)",
+          "name": "Update AI Prompt",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{jwtToken}}" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"channel\": \"wordpress\",\n  \"title\": \"AI Daily Digest: Top Stories\",\n  \"content\": \"<h1>Today's Highlights</h1><p>Automated digest content goes here.</p>\",\n  \"images\": [\"https://images.example.com/ai-generated-1.jpg\"],\n  \"credentials\": {\n    \"apiUrl\": \"https://example.com\",\n    \"accessToken\": \"wp_token_here\",\n    \"target\": \"\"\n  },\n  \"metadata\": { \"status\": \"publish\" }\n}"
+              "raw": "{\n  \"description\": \"Updated prompt description\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish", "host": ["{{baseUrl}}"], "path": ["workspaces","{{workspaceId}}","dispatcher","publish"] }
+            "url": {
+              "raw": "{{baseUrl}}/ai-prompts/{{aiPromptId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-prompts",
+                "{{aiPromptId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete AI Prompt",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ai-prompts/{{aiPromptId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ai-prompts",
+                "{{aiPromptId}}"
+              ]
+            }
           }
         }
       ]

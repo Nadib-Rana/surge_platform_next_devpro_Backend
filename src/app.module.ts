@@ -21,6 +21,7 @@ import { GeneratedDraftsModule } from "./modules/generated-drafts/generated-draf
 import { PublishingChannelsModule } from "./modules/publishing-channels/publishing-channels.module";
 import { QueuesModule } from "./modules/queues/queues.module";
 import { AutopilotModule } from "./modules/autopilot/autopilot.module";
+import { StorageModule } from "./modules/storage/storage.module";
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { AutopilotModule } from "./modules/autopilot/autopilot.module";
     PublishingChannelsModule,
     QueuesModule,
     AutopilotModule,
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [

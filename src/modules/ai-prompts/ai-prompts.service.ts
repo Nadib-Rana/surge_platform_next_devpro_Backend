@@ -11,18 +11,25 @@ import { UpdateAiPromptDto } from "./dto/update-ai-prompt.dto";
 import { AiAssetService } from "./ai-asset.service";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
+import { Anthropic } from "@anthropic-ai/sdk";
 
 @Injectable()
 export class AiPromptsService {
   private readonly openai: OpenAI | null;
+  private readonly anthropic: Anthropic | null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly aiAssetService: AiAssetService,
   ) {
-    const apiKey = this.configService.get<string>("OPENAI_API_KEY");
-    this.openai = apiKey ? new OpenAI({ apiKey }) : null;
+    const openAiKey = this.configService.get<string>("OPENAI_API_KEY");
+    this.openai = openAiKey ? new OpenAI({ apiKey: openAiKey }) : null;
+
+    const anthropicKey = this.configService.get<string>("ANTHROPIC_API_KEY");
+    this.anthropic = anthropicKey
+      ? new Anthropic({ apiKey: anthropicKey })
+      : null;
   }
 
   async create(createAiPromptDto: CreateAiPromptDto) {
@@ -128,10 +135,6 @@ export class AiPromptsService {
       throw new BadRequestException("workspaceId is required");
     }
 
-    if (!this.openai) {
-      throw new InternalServerErrorException("OPENAI_API_KEY is not configured");
-    }
-
     const posts = await this.prisma.rawPostsBuffer.findMany({
       where: {
         workspaceId: dto.workspaceId,
@@ -169,22 +172,56 @@ export class AiPromptsService {
       .map((post, index) => `Article ${index + 1}: ${post.title}\n${post.rawContent}`)
       .join("\n\n");
 
-    const completion = await this.openai.chat.completions.create({
-      model: dto.model ?? "gpt-4o-mini",
-      temperature: 0.8,
-      messages: [
-        {
-          role: "system",
-          content: `${promptVersion.systemPrompt}\n\nTone: ${promptVersion.tone ?? "professional"}`,
-        },
-        {
-          role: "user",
-          content: `Create a single, high-engagement social media digest from the following raw articles. Preserve the key points, keep it concise, and make it ready for posting.\n\n${articleContext}`,
-        },
-      ],
-    });
+    const selectedModel = dto.model ?? "gpt-4o-mini";
+    let digestText = "Batch digest generation completed.";
 
-    const digestText = completion.choices[0]?.message?.content?.trim() ?? "Batch digest generation completed.";
+    if (selectedModel.startsWith("claude")) {
+      if (!this.anthropic) {
+        throw new InternalServerErrorException("ANTHROPIC_API_KEY is not configured");
+      }
+
+      const completion = await this.anthropic.messages.create({
+        model: selectedModel,
+        max_tokens: 1024,
+        temperature: 0.8,
+        system: `${promptVersion.systemPrompt}\n\nTone: ${promptVersion.tone ?? "professional"}`,
+        messages: [
+          {
+            role: "user",
+            content: `Create a single, high-engagement social media digest from the following raw articles. Preserve the key points, keep it concise, and make it ready for posting.\n\n${articleContext}`,
+          },
+        ],
+      });
+
+      const textBlock = Array.isArray(completion.content)
+        ? completion.content.find((item: any) => item?.type === "text")
+        : null;
+      const textValue = textBlock && typeof textBlock === "object" && "text" in textBlock && typeof (textBlock as any).text === "string"
+        ? (textBlock as any).text
+        : "";
+      digestText = textValue.trim() || digestText;
+    } else {
+      if (!this.openai) {
+        throw new InternalServerErrorException("OPENAI_API_KEY is not configured");
+      }
+
+      const completion = await this.openai.chat.completions.create({
+        model: selectedModel,
+        temperature: 0.8,
+        messages: [
+          {
+            role: "system",
+            content: `${promptVersion.systemPrompt}\n\nTone: ${promptVersion.tone ?? "professional"}`,
+          },
+          {
+            role: "user",
+            content: `Create a single, high-engagement social media digest from the following raw articles. Preserve the key points, keep it concise, and make it ready for posting.\n\n${articleContext}`,
+          },
+        ],
+      });
+
+      digestText = completion.choices[0]?.message?.content?.trim() ?? digestText;
+    }
 
     await this.sleep(3000);
 
@@ -202,7 +239,7 @@ export class AiPromptsService {
         generationType: "batch_digest",
         socialPlainText: digestText,
         imageUrl: asset.imageUrl,
-        imageProvider: "openai",
+        imageProvider: selectedModel.startsWith("claude") ? "anthropic" : "openai",
         status: "pending",
       },
     });

@@ -1,28 +1,16 @@
 import { Injectable, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../common/context/prisma.service";
-import { Client as MinioClient } from "minio";
-import { Readable } from "stream";
+import { StorageService } from "../storage/storage.service";
 import https from "https";
 
 @Injectable()
 export class AiAssetService {
-  private readonly minio: MinioClient;
-  private readonly bucketName: string;
-
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-  ) {
-    this.minio = new MinioClient({
-      endPoint: this.configService.get<string>("MINIO_ENDPOINT") ?? "127.0.0.1",
-      port: Number(this.configService.get<string>("MINIO_PORT") ?? 9000),
-      useSSL: this.configService.get<string>("MINIO_USE_SSL") === "true",
-      accessKey: this.configService.get<string>("MINIO_ACCESS_KEY") ?? "minioadmin",
-      secretKey: this.configService.get<string>("MINIO_SECRET_KEY") ?? "minioadmin",
-    });
-    this.bucketName = this.configService.get<string>("MINIO_BUCKET") ?? "surge-assets";
-  }
+    private readonly storageService: StorageService,
+  ) {}
 
   async generateImageFromDigest(dto: {
     workspaceId: string;
@@ -53,12 +41,7 @@ export class AiAssetService {
     const buffer = await this.downloadToBuffer(imageUrl);
     const objectName = `workspaces/${dto.workspaceId}/assets/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
 
-    await this.ensureBucketExists();
-    await this.minio.putObject(this.bucketName, objectName, buffer, buffer.length, {
-      "Content-Type": "image/png",
-    });
-
-    const presignedUrl = await this.minio.presignedGetObject(this.bucketName, objectName, 24 * 60 * 60);
+    const presignedUrl = await this.storageService.uploadBuffer(objectName, buffer, "image/png");
 
     await this.prisma.generatedDraft.updateMany({
       where: { workspaceId: dto.workspaceId, promptVersionId: dto.promptVersionId, status: "pending" },
@@ -68,15 +51,8 @@ export class AiAssetService {
     return {
       imageUrl: presignedUrl,
       objectName,
-      bucketName: this.bucketName,
+      bucketName: this.configService.get<string>("MINIO_BUCKET") ?? "surge-assets",
     };
-  }
-
-  private async ensureBucketExists() {
-    const exists = await this.minio.bucketExists(this.bucketName);
-    if (!exists) {
-      await this.minio.makeBucket(this.bucketName, "us-east-1");
-    }
   }
 
   private async downloadToBuffer(url: string): Promise<Buffer> {
