@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { ApiTestController } from "./api-test.controller";
 import { ContextModule } from "./common/context/context.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
@@ -58,7 +59,7 @@ import { StorageModule } from "./modules/storage/storage.module";
     AutopilotModule,
     StorageModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ApiTestController],
   providers: [
     AppService,
     {
