@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RssFeedsController } from './rss-feeds.controller';
-import { RssFeedsService } from './rss-feeds.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { RssFeedsController } from "./rss-feeds.controller";
+import { RssFeedsService } from "./rss-feeds.service";
 
-describe('RssFeedsController', () => {
+describe("RssFeedsController", () => {
   let controller: RssFeedsController;
 
   beforeEach(async () => {
@@ -14,7 +14,7 @@ describe('RssFeedsController', () => {
     controller = module.get<RssFeedsController>(RssFeedsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

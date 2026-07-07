@@ -39,7 +39,9 @@ export class RssProcessor extends WorkerHost {
   async process(job: Job<RssJobPayload>, token?: string) {
     const { workspaceId, feedId, feedUrl } = job.data;
 
-    this.logger.log(`Processing RSS feed ${feedId} for workspace ${workspaceId}`);
+    this.logger.log(
+      `Processing RSS feed ${feedId} for workspace ${workspaceId}`,
+    );
 
     const response = await fetch(feedUrl, {
       method: "GET",
@@ -49,7 +51,9 @@ export class RssProcessor extends WorkerHost {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch RSS feed: ${response.status} ${response.statusText}`,
+      );
     }
 
     const xml = await response.text();
@@ -78,10 +82,16 @@ export class RssProcessor extends WorkerHost {
         continue;
       }
 
-      const rawContent = [item.content, item.contentSnippet].filter(Boolean).join("\n\n");
+      const rawContent = [item.content, item.contentSnippet]
+        .filter(Boolean)
+        .join("\n\n");
       const publishedAtValue = item.isoDate || item.pubDate;
-      const parsedPublishedAt = publishedAtValue ? new Date(publishedAtValue) : new Date();
-      const publishedAt = Number.isNaN(parsedPublishedAt.getTime()) ? new Date() : parsedPublishedAt;
+      const parsedPublishedAt = publishedAtValue
+        ? new Date(publishedAtValue)
+        : new Date();
+      const publishedAt = Number.isNaN(parsedPublishedAt.getTime())
+        ? new Date()
+        : parsedPublishedAt;
 
       await this.prisma.rawPostsBuffer.create({
         data: {

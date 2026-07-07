@@ -5,7 +5,7 @@ import {
   Body,
   Patch,
   Param,
-  Delete
+  Delete,
 } from "@nestjs/common";
 import { GeneratedDraftsService } from "./generated-drafts.service";
 import { CreateGeneratedDraftDto } from "./dto/create-generated-draft.dto";
@@ -13,7 +13,9 @@ import { UpdateGeneratedDraftDto } from "./dto/update-generated-draft.dto";
 
 @Controller("generated-drafts")
 export class GeneratedDraftsController {
-  constructor(private readonly generatedDraftsService: GeneratedDraftsService) {}
+  constructor(
+    private readonly generatedDraftsService: GeneratedDraftsService,
+  ) {}
 
   @Post()
   create(@Body() createGeneratedDraftDto: CreateGeneratedDraftDto) {
@@ -31,7 +33,10 @@ export class GeneratedDraftsController {
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() updateGeneratedDraftDto: UpdateGeneratedDraftDto) {
+  update(
+    @Param("id") id: string,
+    @Body() updateGeneratedDraftDto: UpdateGeneratedDraftDto,
+  ) {
     return this.generatedDraftsService.update(+id, updateGeneratedDraftDto);
   }
 

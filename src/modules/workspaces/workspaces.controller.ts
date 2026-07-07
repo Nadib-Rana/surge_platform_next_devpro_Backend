@@ -13,11 +13,20 @@ export class WorkspacesController {
   ) {}
 
   @Patch(":workspaceId/queue-config")
-  async updateQueueConfig(@Param("workspaceId") workspaceId: string, @Body() dto: QueueConfigDto) {
-    const updated = await this.workspacesService.updateQueueConfig(workspaceId, dto);
+  async updateQueueConfig(
+    @Param("workspaceId") workspaceId: string,
+    @Body() dto: QueueConfigDto,
+  ) {
+    const updated = await this.workspacesService.updateQueueConfig(
+      workspaceId,
+      dto,
+    );
     // notify scheduler to reschedule repeatable jobs
     await this.scheduler.onWorkspaceConfigChange(workspaceId);
-    await this.autopilotScheduler.syncWorkspaceSchedules(workspaceId, dto as any);
+    await this.autopilotScheduler.syncWorkspaceSchedules(
+      workspaceId,
+      dto as any,
+    );
     return updated;
   }
 }

@@ -1,3 +1,3 @@
-import { DispatchResult } from '../interfaces/base-dispatcher.interface';
+import { DispatchResult } from "../interfaces/base-dispatcher.interface";
 
 export type DispatchResultDto = DispatchResult;

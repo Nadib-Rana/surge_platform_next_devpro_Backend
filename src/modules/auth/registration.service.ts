@@ -150,62 +150,64 @@ export class RegistrationService {
 
     if (!user) throw new BadRequestException("User not found");
 
-    const { company, workspace } = await this.prisma.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: { isVerified: true },
-      });
-
-      await tx.verificationToken.update({
-        where: { id: verification.id },
-        data: { used: true },
-      });
-
-      let companyRecord = await tx.company.findFirst({
-        where: { ownerId: updatedUser.id },
-      });
-
-      if (!companyRecord) {
-        companyRecord = await tx.company.create({
-          data: {
-            ownerId: updatedUser.id,
-            name: updatedUser.email.split("@")[0] || updatedUser.email,
-            status: "active",
-          },
+    const { company, workspace } = await this.prisma.$transaction(
+      async (tx) => {
+        const updatedUser = await tx.user.update({
+          where: { id: user.id },
+          data: { isVerified: true },
         });
-      }
 
-      let workspaceRecord = await tx.workspace.findFirst({
-        where: { companyId: companyRecord.id },
-      });
+        await tx.verificationToken.update({
+          where: { id: verification.id },
+          data: { used: true },
+        });
 
-      if (!workspaceRecord) {
-        workspaceRecord = await tx.workspace.create({
-          data: {
-            companyId: companyRecord.id,
-            name: "Default Workspace",
-            timezone: "UTC",
-            queueConfig: {
-              fetchFrequencyHours: 6,
-              postingTimes: ["09:00"],
+        let companyRecord = await tx.company.findFirst({
+          where: { ownerId: updatedUser.id },
+        });
+
+        if (!companyRecord) {
+          companyRecord = await tx.company.create({
+            data: {
+              ownerId: updatedUser.id,
+              name: updatedUser.email.split("@")[0] || updatedUser.email,
+              status: "active",
             },
+          });
+        }
+
+        let workspaceRecord = await tx.workspace.findFirst({
+          where: { companyId: companyRecord.id },
+        });
+
+        if (!workspaceRecord) {
+          workspaceRecord = await tx.workspace.create({
+            data: {
+              companyId: companyRecord.id,
+              name: "Default Workspace",
+              timezone: "UTC",
+              queueConfig: {
+                fetchFrequencyHours: 6,
+                postingTimes: ["09:00"],
+              },
+            },
+          });
+        }
+
+        await tx.workspaceMember.create({
+          data: {
+            workspaceId: workspaceRecord.id,
+            userId: updatedUser.id,
+            role: "owner",
           },
         });
-      }
 
-      await tx.workspaceMember.create({
-        data: {
-          workspaceId: workspaceRecord.id,
-          userId: updatedUser.id,
-          role: "owner",
-        },
-      });
-
-      return {
-        company: companyRecord,
-        workspace: workspaceRecord,
-      };
-    });
+        return {
+          company: companyRecord,
+          workspace: workspaceRecord,
+        };
+      },
+    );
 
     // ✅ Generate JWT token (AUTO LOGIN)
     const payload = { sub: user.id, role: user.role };

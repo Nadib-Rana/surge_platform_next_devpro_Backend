@@ -1,10 +1,10 @@
 import {
-    IsArray,
-    IsObject,
-    IsOptional,
-    IsString,
-    IsNotEmpty
-} from 'class-validator';
+  IsArray,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsNotEmpty,
+} from "class-validator";
 
 export class DispatchCredentials {
   @IsOptional()

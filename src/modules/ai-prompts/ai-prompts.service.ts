@@ -71,13 +71,19 @@ export class AiPromptsService {
       },
     });
 
-    if (updateAiPromptDto.systemPrompt || updateAiPromptDto.versionTag || updateAiPromptDto.tone) {
+    if (
+      updateAiPromptDto.systemPrompt ||
+      updateAiPromptDto.versionTag ||
+      updateAiPromptDto.tone
+    ) {
       const previousVersions = await this.prisma.promptVersion.findMany({
         where: { promptId: id },
         orderBy: { createdAt: "desc" },
       });
 
-      const activeVersion = previousVersions.find((version) => version.isActive);
+      const activeVersion = previousVersions.find(
+        (version) => version.isActive,
+      );
       if (activeVersion) {
         await this.prisma.promptVersion.updateMany({
           where: { promptId: id, isActive: true },
@@ -88,8 +94,12 @@ export class AiPromptsService {
       await this.prisma.promptVersion.create({
         data: {
           promptId: id,
-          versionTag: updateAiPromptDto.versionTag ?? `v${previousVersions.length + 1}`,
-          systemPrompt: updateAiPromptDto.systemPrompt ?? activeVersion?.systemPrompt ?? "You are an expert social media copywriter.",
+          versionTag:
+            updateAiPromptDto.versionTag ?? `v${previousVersions.length + 1}`,
+          systemPrompt:
+            updateAiPromptDto.systemPrompt ??
+            activeVersion?.systemPrompt ??
+            "You are an expert social media copywriter.",
           tone: updateAiPromptDto.tone ?? activeVersion?.tone ?? "professional",
           isActive: true,
         },
@@ -121,7 +131,8 @@ export class AiPromptsService {
       data: {
         promptId: prompt.id,
         versionTag: dto.versionTag ?? "v1",
-        systemPrompt: dto.systemPrompt ?? "You are an expert social media copywriter.",
+        systemPrompt:
+          dto.systemPrompt ?? "You are an expert social media copywriter.",
         tone: dto.tone ?? "professional",
         isActive: true,
       },
@@ -145,7 +156,9 @@ export class AiPromptsService {
     });
 
     if (!posts.length) {
-      throw new BadRequestException(`No buffered posts found for workspace ${dto.workspaceId}`);
+      throw new BadRequestException(
+        `No buffered posts found for workspace ${dto.workspaceId}`,
+      );
     }
 
     const promptVersion = dto.promptVersionId
@@ -165,11 +178,16 @@ export class AiPromptsService {
         });
 
     if (!promptVersion) {
-      throw new NotFoundException("No active prompt version found for the workspace");
+      throw new NotFoundException(
+        "No active prompt version found for the workspace",
+      );
     }
 
     const articleContext = posts
-      .map((post, index) => `Article ${index + 1}: ${post.title}\n${post.rawContent}`)
+      .map(
+        (post, index) =>
+          `Article ${index + 1}: ${post.title}\n${post.rawContent}`,
+      )
       .join("\n\n");
 
     const selectedModel = dto.model ?? "gpt-4o-mini";
@@ -177,7 +195,9 @@ export class AiPromptsService {
 
     if (selectedModel.startsWith("claude")) {
       if (!this.anthropic) {
-        throw new InternalServerErrorException("ANTHROPIC_API_KEY is not configured");
+        throw new InternalServerErrorException(
+          "ANTHROPIC_API_KEY is not configured",
+        );
       }
 
       const completion = await this.anthropic.messages.create({
@@ -196,13 +216,19 @@ export class AiPromptsService {
       const textBlock = Array.isArray(completion.content)
         ? completion.content.find((item: any) => item?.type === "text")
         : null;
-      const textValue = textBlock && typeof textBlock === "object" && "text" in textBlock && typeof (textBlock as any).text === "string"
-        ? (textBlock as any).text
-        : "";
+      const textValue =
+        textBlock &&
+        typeof textBlock === "object" &&
+        "text" in textBlock &&
+        typeof (textBlock as any).text === "string"
+          ? (textBlock as any).text
+          : "";
       digestText = textValue.trim() || digestText;
     } else {
       if (!this.openai) {
-        throw new InternalServerErrorException("OPENAI_API_KEY is not configured");
+        throw new InternalServerErrorException(
+          "OPENAI_API_KEY is not configured",
+        );
       }
 
       const completion = await this.openai.chat.completions.create({
@@ -220,7 +246,8 @@ export class AiPromptsService {
         ],
       });
 
-      digestText = completion.choices[0]?.message?.content?.trim() ?? digestText;
+      digestText =
+        completion.choices[0]?.message?.content?.trim() ?? digestText;
     }
 
     await this.sleep(3000);
@@ -239,7 +266,9 @@ export class AiPromptsService {
         generationType: "batch_digest",
         socialPlainText: digestText,
         imageUrl: asset.imageUrl,
-        imageProvider: selectedModel.startsWith("claude") ? "anthropic" : "openai",
+        imageProvider: selectedModel.startsWith("claude")
+          ? "anthropic"
+          : "openai",
         status: "pending",
       },
     });

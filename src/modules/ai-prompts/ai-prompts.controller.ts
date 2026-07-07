@@ -37,7 +37,10 @@ export class AiPromptsController {
   }
 
   @Patch(":id")
-  update(@Param("id") id: string, @Body() updateAiPromptDto: UpdateAiPromptDto) {
+  update(
+    @Param("id") id: string,
+    @Body() updateAiPromptDto: UpdateAiPromptDto,
+  ) {
     return this.aiPromptsService.update(id, updateAiPromptDto);
   }
 

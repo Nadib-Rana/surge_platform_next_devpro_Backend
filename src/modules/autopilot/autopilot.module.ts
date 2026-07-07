@@ -9,7 +9,11 @@ import { FailedPostsRetryProcessor } from "./autopilot-retry.processor";
     BullModule.registerQueue({ name: "autopilot-dispatch-queue" }),
     BullModule.registerQueue({ name: "FailedPostsQueue" }),
   ],
-  providers: [AutopilotSchedulerService, AutopilotDispatchProcessor, FailedPostsRetryProcessor],
+  providers: [
+    AutopilotSchedulerService,
+    AutopilotDispatchProcessor,
+    FailedPostsRetryProcessor,
+  ],
   exports: [AutopilotSchedulerService],
 })
 export class AutopilotModule {}

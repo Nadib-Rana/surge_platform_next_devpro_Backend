@@ -31,7 +31,8 @@ import { MailModule } from "../../mail/mail.module";
         return {
           secret,
           signOptions: {
-            expiresIn: (configService.get<string>("JWT_EXPIRES_IN") || jwtConstants.expiresIn) as any,
+            expiresIn: (configService.get<string>("JWT_EXPIRES_IN") ||
+              jwtConstants.expiresIn) as any,
           },
         };
       },

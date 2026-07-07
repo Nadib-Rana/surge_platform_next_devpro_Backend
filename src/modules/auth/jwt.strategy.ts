@@ -17,7 +17,10 @@ interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private configService: ConfigService, private prisma: PrismaService) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -38,13 +41,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       if (payload.iat) {
         const user = await this.prisma.user.findUnique({
           where: { id: payload.sub },
-          select: { id: true, role: true, isVerified: true, email: true, fullName: true, avatarKey: true, passwordChangedAt: true },
+          select: {
+            id: true,
+            role: true,
+            isVerified: true,
+            email: true,
+            fullName: true,
+            avatarKey: true,
+            passwordChangedAt: true,
+          },
         });
 
         if (user && user.passwordChangedAt) {
-          const pwdChangedAtSec = Math.floor(user.passwordChangedAt.getTime() / 1000);
+          const pwdChangedAtSec = Math.floor(
+            user.passwordChangedAt.getTime() / 1000,
+          );
           if (pwdChangedAtSec > payload.iat) {
-            throw new UnauthorizedException("Token invalidated after password change");
+            throw new UnauthorizedException(
+              "Token invalidated after password change",
+            );
           }
         }
 

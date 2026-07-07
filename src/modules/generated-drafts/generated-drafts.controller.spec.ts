@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { GeneratedDraftsController } from './generated-drafts.controller';
-import { GeneratedDraftsService } from './generated-drafts.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { GeneratedDraftsController } from "./generated-drafts.controller";
+import { GeneratedDraftsService } from "./generated-drafts.service";
 
-describe('GeneratedDraftsController', () => {
+describe("GeneratedDraftsController", () => {
   let controller: GeneratedDraftsController;
 
   beforeEach(async () => {
@@ -11,10 +11,12 @@ describe('GeneratedDraftsController', () => {
       providers: [GeneratedDraftsService],
     }).compile();
 
-    controller = module.get<GeneratedDraftsController>(GeneratedDraftsController);
+    controller = module.get<GeneratedDraftsController>(
+      GeneratedDraftsController,
+    );
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

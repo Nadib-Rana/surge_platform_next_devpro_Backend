@@ -16,7 +16,8 @@ export class AutopilotSchedulerService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    @InjectQueue("autopilot-dispatch-queue") private readonly dispatchQueue: Queue,
+    @InjectQueue("autopilot-dispatch-queue")
+    private readonly dispatchQueue: Queue,
   ) {}
 
   async onModuleInit() {
@@ -27,11 +28,17 @@ export class AutopilotSchedulerService implements OnModuleInit {
     const workspaces = await this.prisma.workspace.findMany();
 
     for (const workspace of workspaces) {
-      await this.syncWorkspaceSchedules(workspace.id, workspace.queueConfig as WorkspaceQueueConfig | null);
+      await this.syncWorkspaceSchedules(
+        workspace.id,
+        workspace.queueConfig as WorkspaceQueueConfig | null,
+      );
     }
   }
 
-  async syncWorkspaceSchedules(workspaceId: string, queueConfig: WorkspaceQueueConfig | null | undefined) {
+  async syncWorkspaceSchedules(
+    workspaceId: string,
+    queueConfig: WorkspaceQueueConfig | null | undefined,
+  ) {
     const postingTimes = queueConfig?.postingTimes ?? [];
 
     await this.removeWorkspaceJobs(workspaceId);
@@ -61,7 +68,9 @@ export class AutopilotSchedulerService implements OnModuleInit {
       );
     }
 
-    this.logger.log(`Synced ${postingTimes.length} autopilot schedules for workspace ${workspaceId}`);
+    this.logger.log(
+      `Synced ${postingTimes.length} autopilot schedules for workspace ${workspaceId}`,
+    );
   }
 
   private async removeWorkspaceJobs(workspaceId: string) {

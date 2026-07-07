@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AiPromptsController } from './ai-prompts.controller';
-import { AiPromptsService } from './ai-prompts.service';
+import { Test, TestingModule } from "@nestjs/testing";
+import { AiPromptsController } from "./ai-prompts.controller";
+import { AiPromptsService } from "./ai-prompts.service";
 
-describe('AiPromptsController', () => {
+describe("AiPromptsController", () => {
   let controller: AiPromptsController;
 
   beforeEach(async () => {
@@ -14,7 +14,7 @@ describe('AiPromptsController', () => {
     controller = module.get<AiPromptsController>(AiPromptsController);
   });
 
-  it('should be defined', () => {
+  it("should be defined", () => {
     expect(controller).toBeDefined();
   });
 });

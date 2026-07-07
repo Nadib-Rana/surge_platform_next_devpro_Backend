@@ -5,7 +5,7 @@ import {
   Body,
   Patch,
   Param,
-  Delete
+  Delete,
 } from "@nestjs/common";
 import { QueuesService } from "./queues.service";
 import { CreateQueueDto } from "./dto/create-queue.dto";

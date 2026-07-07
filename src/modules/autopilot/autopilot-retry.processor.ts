@@ -20,7 +20,9 @@ export class FailedPostsRetryProcessor extends WorkerHost {
 
   async process(job: Job<FailedPostRetryPayload>) {
     const { logId } = job.data;
-    const publishLog = await this.prisma.publishedPostsLog.findUnique({ where: { id: logId } });
+    const publishLog = await this.prisma.publishedPostsLog.findUnique({
+      where: { id: logId },
+    });
 
     if (!publishLog) {
       return { skipped: true, reason: "not-found" };
@@ -32,7 +34,9 @@ export class FailedPostsRetryProcessor extends WorkerHost {
 
     const attemptNumber = job.attemptsMade + 1;
     const delayMs = computeBackoffDelayMs(attemptNumber);
-    this.logger.warn(`Retrying failed publish ${logId} on attempt ${attemptNumber} with ${delayMs}ms delay`);
+    this.logger.warn(
+      `Retrying failed publish ${logId} on attempt ${attemptNumber} with ${delayMs}ms delay`,
+    );
 
     if (attemptNumber >= 3) {
       await this.prisma.publishedPostsLog.update({

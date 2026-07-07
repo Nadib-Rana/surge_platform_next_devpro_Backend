@@ -5,4 +5,3 @@ export class AiPrompt {
   description?: string | null;
   createdAt: Date;
 }
-

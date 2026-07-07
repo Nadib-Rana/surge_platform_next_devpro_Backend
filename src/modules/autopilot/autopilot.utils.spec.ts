@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { buildDailyCronExpression, computeBackoffDelayMs } from "./autopilot.utils";
+import {
+  buildDailyCronExpression,
+  computeBackoffDelayMs,
+} from "./autopilot.utils";
 
 describe("autopilot utilities", () => {
   it("converts common posting times to daily cron expressions", () => {

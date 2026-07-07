@@ -1,4 +1,12 @@
-import { IsObject, IsOptional, IsNumber, Min, IsArray, ArrayNotEmpty, IsString } from "class-validator";
+import {
+  IsObject,
+  IsOptional,
+  IsNumber,
+  Min,
+  IsArray,
+  ArrayNotEmpty,
+  IsString,
+} from "class-validator";
 
 export class QueueConfigDto {
   @IsOptional()

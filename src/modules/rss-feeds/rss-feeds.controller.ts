@@ -5,7 +5,7 @@ import {
   Body,
   Patch,
   Param,
-  Delete
+  Delete,
 } from "@nestjs/common";
 import { RssFeedsService } from "./rss-feeds.service";
 import { CreateRssFeedDto } from "./dto/create-rss-feed.dto";

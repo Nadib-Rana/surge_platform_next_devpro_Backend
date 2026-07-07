@@ -26,14 +26,17 @@ export class AutopilotDispatchProcessor extends WorkerHost {
     @InjectQueue("FailedPostsQueue") private readonly failedPostsQueue: Queue,
   ) {
     super();
-    const redisUrl = this.config.get<string>("REDIS_URL") || "redis://127.0.0.1:6379";
+    const redisUrl =
+      this.config.get<string>("REDIS_URL") || "redis://127.0.0.1:6379";
     this.redis = new Redis(redisUrl);
   }
 
   async process(job: Job<AutopilotDispatchJobPayload>, token?: string) {
     const { workspaceId, draftId, attempt = 0 } = job.data;
 
-    this.logger.log(`Processing autopilot job ${job.id} for workspace ${workspaceId}`);
+    this.logger.log(
+      `Processing autopilot job ${job.id} for workspace ${workspaceId}`,
+    );
 
     const draft = await this.prisma.generatedDraft.findFirst({
       where: {
@@ -44,13 +47,21 @@ export class AutopilotDispatchProcessor extends WorkerHost {
     });
 
     if (!draft) {
-      this.logger.warn(`No dispatchable draft found for workspace ${workspaceId}`);
+      this.logger.warn(
+        `No dispatchable draft found for workspace ${workspaceId}`,
+      );
       return { skipped: true, reason: "no-draft" };
     }
 
     const lockKey = `autopilot-lock:${draft.id}`;
     const lockValue = `${process.pid}:${Date.now()}`;
-    const acquired = await this.redis.set(lockKey, lockValue, "PX", 600_000, "NX");
+    const acquired = await this.redis.set(
+      lockKey,
+      lockValue,
+      "PX",
+      600_000,
+      "NX",
+    );
 
     if (!acquired) {
       this.logger.warn(`Skipping already-processing draft ${draft.id}`);
@@ -64,7 +75,9 @@ export class AutopilotDispatchProcessor extends WorkerHost {
 
       for (const channel of channels) {
         const idempotencyKey = `${draft.id}:${channel.id}`;
-        let publishLog = await this.prisma.publishedPostsLog.findUnique({ where: { idempotencyKey } });
+        let publishLog = await this.prisma.publishedPostsLog.findUnique({
+          where: { idempotencyKey },
+        });
 
         if (!publishLog) {
           publishLog = await this.prisma.publishedPostsLog.create({
@@ -87,14 +100,18 @@ export class AutopilotDispatchProcessor extends WorkerHost {
           await this.simulatePublish(channel, draft);
           await this.prisma.publishedPostsLog.update({
             where: { id: publishLog.id },
-            data: { status: "sent", livePostUrl: `https://example.local/${draft.id}` },
+            data: {
+              status: "sent",
+              livePostUrl: `https://example.local/${draft.id}`,
+            },
           });
           await this.prisma.generatedDraft.update({
             where: { id: draft.id },
             data: { status: "auto_dispatch" },
           });
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Unknown dispatch error";
+          const message =
+            error instanceof Error ? error.message : "Unknown dispatch error";
           await this.prisma.publishedPostsLog.update({
             where: { id: publishLog.id },
             data: { status: "retrying", retryCount: attempt + 1 },
@@ -131,7 +148,10 @@ export class AutopilotDispatchProcessor extends WorkerHost {
     }
   }
 
-  private async simulatePublish(channel: { platform: string }, draft: { socialPlainText: string | null }) {
+  private async simulatePublish(
+    channel: { platform: string },
+    draft: { socialPlainText: string | null },
+  ) {
     if (!draft.socialPlainText?.trim()) {
       throw new Error("Draft does not contain publishable content");
     }

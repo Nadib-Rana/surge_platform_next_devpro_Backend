@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Param, Get, Delete, Query } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  Param,
+  Get,
+  Delete,
+  Query,
+} from "@nestjs/common";
 import { RssSourcesService } from "./rss-sources.service";
 import { CreateRssSourceDto } from "./dto/create-rss-source.dto";
 
@@ -7,7 +15,10 @@ export class RssSourcesController {
   constructor(private readonly rssService: RssSourcesService) {}
 
   @Post()
-  create(@Param("workspaceId") workspaceId: string, @Body() dto: CreateRssSourceDto) {
+  create(
+    @Param("workspaceId") workspaceId: string,
+    @Body() dto: CreateRssSourceDto,
+  ) {
     return this.rssService.create(workspaceId, dto);
   }
 

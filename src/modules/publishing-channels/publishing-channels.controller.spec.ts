@@ -11,7 +11,9 @@ describe("PublishingChannelsController", () => {
       providers: [PublishingChannelsService],
     }).compile();
 
-    controller = module.get<PublishingChannelsController>(PublishingChannelsController);
+    controller = module.get<PublishingChannelsController>(
+      PublishingChannelsController,
+    );
   });
 
   it("should be defined", () => {
