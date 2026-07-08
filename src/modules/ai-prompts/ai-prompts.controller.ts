@@ -14,6 +14,8 @@ import { GenerateBatchDigestDto } from "./dto/generate-batch-digest.dto";
 import { UpdateAiPromptDto } from "./dto/update-ai-prompt.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { GetUser } from "../auth/decorators/get-user.decorator";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
 
 interface AuthenticatedUser {
   userId: string;
@@ -50,12 +52,28 @@ export class AiPromptsController {
     return this.aiPromptsService.findWorkspacePrompts(user);
   }
 
-  @Patch(":id")
-  update(
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  @Patch("global/:id")
+  updateGlobalPrompt(
     @Param("id") id: string,
     @Body() updateAiPromptDto: UpdateAiPromptDto,
   ) {
-    return this.aiPromptsService.update(id, updateAiPromptDto);
+    return this.aiPromptsService.updateGlobalPrompt(id, updateAiPromptDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch("workspace/:id")
+  updateWorkspacePrompt(
+    @Param("id") id: string,
+    @Body() updateAiPromptDto: UpdateAiPromptDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.aiPromptsService.updateWorkspacePrompt(
+      id,
+      updateAiPromptDto,
+      user,
+    );
   }
 
   @Delete(":id")

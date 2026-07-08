@@ -1,4 +1,19 @@
-import { PartialType } from "@nestjs/mapped-types";
-import { CreateAiPromptDto } from "./create-ai-prompt.dto";
+import { IsOptional, IsString } from "class-validator";
 
-export class UpdateAiPromptDto extends PartialType(CreateAiPromptDto) {}
+export class UpdateAiPromptDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  systemPrompt?: string;
+
+  @IsOptional()
+  @IsString()
+  tone?: string;
+}

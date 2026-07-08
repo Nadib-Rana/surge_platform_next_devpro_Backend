@@ -29,8 +29,21 @@ jest.mock("@anthropic-ai/sdk", () => ({
 describe("AiPromptsService", () => {
   let service: AiPromptsService;
   let prisma: {
-    aiPrompt: { create: jest.Mock; findMany: jest.Mock; findUnique: jest.Mock };
-    promptVersion: { create: jest.Mock; findFirst: jest.Mock };
+    $transaction: jest.Mock;
+    aiPrompt: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      findFirst: jest.Mock;
+      update: jest.Mock;
+    };
+    promptVersion: {
+      create: jest.Mock;
+      findFirst: jest.Mock;
+      findMany: jest.Mock;
+      count: jest.Mock;
+      updateMany: jest.Mock;
+    };
     rawPostsBuffer: { findMany: jest.Mock };
     generatedDraft: { create: jest.Mock };
   };
@@ -38,12 +51,23 @@ describe("AiPromptsService", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma = {
+      $transaction: jest.fn((callback: (tx: typeof prisma) => unknown) =>
+        callback(prisma),
+      ),
       aiPrompt: {
         create: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        update: jest.fn(),
       },
-      promptVersion: { create: jest.fn(), findFirst: jest.fn() },
+      promptVersion: {
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        count: jest.fn(),
+        updateMany: jest.fn(),
+      },
       rawPostsBuffer: { findMany: jest.fn() },
       generatedDraft: { create: jest.fn() },
     };
@@ -209,6 +233,158 @@ describe("AiPromptsService", () => {
         userId: "user-1",
         role: "customer",
       }),
+    ).rejects.toThrow("AI prompt workspace-prompt not found");
+  });
+
+  it("updates a global prompt by scope-filtered lookup", async () => {
+    prisma.aiPrompt.findFirst.mockResolvedValue({
+      id: "global-prompt",
+      scope: "GLOBAL",
+      name: "Global Digest",
+      description: null,
+    });
+    prisma.aiPrompt.update.mockResolvedValue(undefined);
+    prisma.aiPrompt.findUnique.mockResolvedValue({
+      id: "global-prompt",
+      scope: "GLOBAL",
+      workspaceId: null,
+      name: "Updated Global Digest",
+      versions: [{ id: "version-1", isActive: true }],
+    });
+
+    const result = await service.updateGlobalPrompt("global-prompt", {
+      name: "Updated Global Digest",
+    });
+
+    expect(prisma.aiPrompt.findFirst).toHaveBeenCalledWith({
+      where: { id: "global-prompt", scope: "GLOBAL" },
+    });
+    expect(prisma.aiPrompt.update).toHaveBeenCalledWith({
+      where: { id: "global-prompt" },
+      data: {
+        name: "Updated Global Digest",
+        description: null,
+      },
+    });
+    expect(prisma.promptVersion.create).not.toHaveBeenCalled();
+    expect(prisma.aiPrompt.findUnique).toHaveBeenCalledWith({
+      where: { id: "global-prompt" },
+      include: {
+        versions: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+    expect(result.versions[0].isActive).toBe(true);
+  });
+
+  it("updates only the user's own workspace prompt", async () => {
+    prisma.aiPrompt.findFirst.mockResolvedValue({
+      id: "workspace-prompt",
+      scope: "WORKSPACE",
+      createdById: "user-1",
+      name: "Workspace Digest",
+      description: null,
+    });
+    prisma.aiPrompt.update.mockResolvedValue(undefined);
+    prisma.aiPrompt.findUnique.mockResolvedValue({
+      id: "workspace-prompt",
+      scope: "WORKSPACE",
+      workspaceId: "workspace-1",
+      name: "Updated Workspace Digest",
+      versions: [{ id: "version-1", isActive: true }],
+    });
+
+    await service.updateWorkspacePrompt(
+      "workspace-prompt",
+      { name: "Updated Workspace Digest" },
+      { userId: "user-1", role: "customer" },
+    );
+
+    expect(prisma.aiPrompt.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "workspace-prompt",
+        scope: "WORKSPACE",
+        createdById: "user-1",
+      },
+    });
+    expect(prisma.aiPrompt.update).toHaveBeenCalledWith({
+      where: { id: "workspace-prompt" },
+      data: {
+        name: "Updated Workspace Digest",
+        description: null,
+      },
+    });
+  });
+
+  it("creates a new active prompt version inside the update transaction", async () => {
+    prisma.aiPrompt.findFirst.mockResolvedValue({
+      id: "workspace-prompt",
+      scope: "WORKSPACE",
+      createdById: "user-1",
+      name: "Workspace Digest",
+      description: "Digest prompt",
+    });
+    prisma.aiPrompt.update.mockResolvedValue(undefined);
+    prisma.promptVersion.findFirst.mockResolvedValue({
+      id: "version-1",
+      systemPrompt: "Old system prompt",
+      tone: "professional",
+      isActive: true,
+    });
+    prisma.promptVersion.count.mockResolvedValue(1);
+    prisma.aiPrompt.findUnique.mockResolvedValue({
+      id: "workspace-prompt",
+      scope: "WORKSPACE",
+      name: "Workspace Digest",
+      versions: [
+        {
+          id: "version-2",
+          systemPrompt: "Old system prompt",
+          tone: "casual",
+          isActive: true,
+        },
+      ],
+    });
+
+    const result = await service.updateWorkspacePrompt(
+      "workspace-prompt",
+      { tone: "casual" },
+      { userId: "user-1", role: "customer" },
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(prisma.promptVersion.findFirst).toHaveBeenCalledWith({
+      where: { promptId: "workspace-prompt", isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+    expect(prisma.promptVersion.updateMany).toHaveBeenCalledWith({
+      where: { promptId: "workspace-prompt" },
+      data: { isActive: false },
+    });
+    expect(prisma.promptVersion.create).toHaveBeenCalledWith({
+      data: {
+        promptId: "workspace-prompt",
+        versionTag: "v2",
+        systemPrompt: "Old system prompt",
+        tone: "casual",
+        isActive: true,
+      },
+    });
+    expect(result.versions[0].tone).toBe("casual");
+  });
+
+  it("hides another user's workspace prompt during update", async () => {
+    prisma.aiPrompt.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.updateWorkspacePrompt(
+        "workspace-prompt",
+        { name: "Updated Workspace Digest" },
+        { userId: "user-1", role: "customer" },
+      ),
     ).rejects.toThrow("AI prompt workspace-prompt not found");
   });
 

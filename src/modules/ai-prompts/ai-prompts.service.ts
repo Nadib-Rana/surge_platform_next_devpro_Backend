@@ -11,6 +11,7 @@ import { GenerateBatchDigestDto } from "./dto/generate-batch-digest.dto";
 import { UpdateAiPromptDto } from "./dto/update-ai-prompt.dto";
 import { AiAssetService } from "./ai-asset.service";
 import { ConfigService } from "@nestjs/config";
+import { Prisma } from "@prisma/client";
 import OpenAI from "openai";
 import { Anthropic } from "@anthropic-ai/sdk";
 import { type TextBlock } from "@anthropic-ai/sdk/resources/messages";
@@ -18,6 +19,14 @@ import { type TextBlock } from "@anthropic-ai/sdk/resources/messages";
 interface AuthenticatedUser {
   userId: string;
   role: string;
+}
+
+type PromptScope = "GLOBAL" | "WORKSPACE";
+
+interface UpdateablePrompt {
+  name: string;
+  description: string | null;
+  scope: PromptScope;
 }
 
 @Injectable()
@@ -75,46 +84,85 @@ export class AiPromptsService {
     return prompt;
   }
 
-  async update(id: string, updateAiPromptDto: UpdateAiPromptDto) {
-    const prompt = await this.prisma.aiPrompt.findUnique({ where: { id } });
+  async updateGlobalPrompt(id: string, updateAiPromptDto: UpdateAiPromptDto) {
+    const prompt = await this.prisma.aiPrompt.findFirst({
+      where: { id, scope: "GLOBAL" },
+    });
+
     if (!prompt) {
       throw new NotFoundException(`AI prompt ${id} not found`);
     }
 
-    const updatedPrompt = await this.prisma.aiPrompt.update({
+    return this.updatePromptWithVersion(id, updateAiPromptDto, prompt);
+  }
+
+  async updateWorkspacePrompt(
+    id: string,
+    updateAiPromptDto: UpdateAiPromptDto,
+    user: AuthenticatedUser,
+  ) {
+    const prompt = await this.prisma.aiPrompt.findFirst({
+      where: { id, scope: "WORKSPACE", createdById: user.userId },
+    });
+
+    if (!prompt) {
+      throw new NotFoundException(`AI prompt ${id} not found`);
+    }
+
+    return this.updatePromptWithVersion(id, updateAiPromptDto, prompt);
+  }
+
+  private async updatePromptWithVersion(
+    id: string,
+    updateAiPromptDto: UpdateAiPromptDto,
+    prompt: {
+      name: string;
+      description: string | null;
+      scope: PromptScope;
+    },
+  ) {
+    return this.prisma.$transaction((tx) =>
+      this.updatePromptWithVersionTransaction(
+        tx,
+        id,
+        updateAiPromptDto,
+        prompt,
+      ),
+    );
+  }
+
+  private async updatePromptWithVersionTransaction(
+    tx: Prisma.TransactionClient,
+    id: string,
+    updateAiPromptDto: UpdateAiPromptDto,
+    prompt: UpdateablePrompt,
+  ) {
+    await tx.aiPrompt.update({
       where: { id },
       data: {
         name: updateAiPromptDto.name ?? prompt.name,
         description: updateAiPromptDto.description ?? prompt.description,
-        workspaceId: updateAiPromptDto.workspaceId ?? prompt.workspaceId,
       },
     });
 
-    if (
-      updateAiPromptDto.systemPrompt ||
-      updateAiPromptDto.versionTag ||
-      updateAiPromptDto.tone
-    ) {
-      const previousVersions = await this.prisma.promptVersion.findMany({
-        where: { promptId: id },
+    if (this.hasVersionChange(updateAiPromptDto)) {
+      const activeVersion = await tx.promptVersion.findFirst({
+        where: { promptId: id, isActive: true },
         orderBy: { createdAt: "desc" },
       });
+      const versionCount = await tx.promptVersion.count({
+        where: { promptId: id },
+      });
 
-      const activeVersion = previousVersions.find(
-        (version) => version.isActive,
-      );
-      if (activeVersion) {
-        await this.prisma.promptVersion.updateMany({
-          where: { promptId: id, isActive: true },
-          data: { isActive: false },
-        });
-      }
+      await tx.promptVersion.updateMany({
+        where: { promptId: id },
+        data: { isActive: false },
+      });
 
-      await this.prisma.promptVersion.create({
+      await tx.promptVersion.create({
         data: {
           promptId: id,
-          versionTag:
-            updateAiPromptDto.versionTag ?? `v${previousVersions.length + 1}`,
+          versionTag: `v${versionCount + 1}`,
           systemPrompt:
             updateAiPromptDto.systemPrompt ??
             activeVersion?.systemPrompt ??
@@ -125,7 +173,29 @@ export class AiPromptsService {
       });
     }
 
+    const updatedPrompt = await tx.aiPrompt.findUnique({
+      where: { id },
+      include: {
+        versions: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    if (!updatedPrompt) {
+      throw new NotFoundException(`AI prompt ${id} not found`);
+    }
+
     return updatedPrompt;
+  }
+
+  private hasVersionChange(updateAiPromptDto: UpdateAiPromptDto) {
+    return (
+      updateAiPromptDto.systemPrompt !== undefined ||
+      updateAiPromptDto.tone !== undefined
+    );
   }
 
   async remove(id: string) {
