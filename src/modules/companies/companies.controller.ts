@@ -32,8 +32,10 @@ export class CompaniesController {
   }
 
   @Get()
-  findAll() {
-    return this.companiesService.findAll();
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  findAll(@GetUser() user: AuthenticatedUser) {
+    return this.companiesService.findAll(user);
   }
 
   @Get(":id")

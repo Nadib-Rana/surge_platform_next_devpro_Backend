@@ -300,6 +300,36 @@
               }
             },
             {
+              "name": "Update Current User Profile",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nadib Rana\",\n  \"phoneNumber\": \"+8801712345678\",\n  \"avatarKey\": \"profiles/user-avatar.png\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                }
+              }
+            },
+            {
               "name": "Create Company",
               "request": {
                 "method": "POST",
@@ -328,7 +358,12 @@
               "name": "List Companies",
               "request": {
                 "method": "GET",
-                "header": [],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{baseUrl}}/companies",
                   "host": [

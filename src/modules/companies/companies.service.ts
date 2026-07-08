@@ -22,8 +22,17 @@ export class CompaniesService {
     return "This action adds a new company";
   }
 
-  findAll() {
-    return `This action returns all companies`;
+  findAll(user: AuthenticatedUser) {
+    if (user.role === "admin") {
+      return this.prisma.company.findMany({
+        orderBy: { createdAt: "desc" },
+      });
+    }
+
+    return this.prisma.company.findMany({
+      where: { ownerId: user.userId },
+      orderBy: { createdAt: "desc" },
+    });
   }
 
   async findOne(id: string, user: AuthenticatedUser) {
