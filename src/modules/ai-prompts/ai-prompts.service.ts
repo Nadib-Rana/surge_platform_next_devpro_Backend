@@ -12,6 +12,7 @@ import { AiAssetService } from "./ai-asset.service";
 import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 import { Anthropic } from "@anthropic-ai/sdk";
+import { type TextBlock } from "@anthropic-ai/sdk/resources/messages";
 
 @Injectable()
 export class AiPromptsService {
@@ -119,9 +120,27 @@ export class AiPromptsService {
   }
 
   async createPromptWithVersion(dto: CreateAiPromptDto) {
+    if (!dto.createdById) {
+      throw new BadRequestException("createdById is required");
+    }
+
+    if (dto.scope === "GLOBAL") {
+      if (dto.workspaceId) {
+        throw new BadRequestException(
+          "workspaceId must be omitted for global prompts",
+        );
+      }
+    } else if (!dto.workspaceId) {
+      throw new BadRequestException(
+        "workspaceId is required for workspace prompts",
+      );
+    }
+
     const prompt = await this.prisma.aiPrompt.create({
       data: {
-        workspaceId: dto.workspaceId ?? null,
+        scope: dto.scope ?? "WORKSPACE",
+        workspaceId: dto.scope === "GLOBAL" ? null : (dto.workspaceId ?? null),
+        createdById: dto.createdById,
         name: dto.name,
         description: dto.description,
       },
@@ -170,7 +189,7 @@ export class AiPromptsService {
           where: {
             isActive: true,
             aiPrompt: {
-              workspaceId: dto.workspaceId,
+              OR: [{ scope: "GLOBAL" }, { workspaceId: dto.workspaceId }],
             },
           },
           orderBy: { createdAt: "desc" },
@@ -213,17 +232,10 @@ export class AiPromptsService {
         ],
       });
 
-      const textBlock = Array.isArray(completion.content)
-        ? completion.content.find((item: any) => item?.type === "text")
-        : null;
-      const textValue =
-        textBlock &&
-        typeof textBlock === "object" &&
-        "text" in textBlock &&
-        typeof (textBlock as any).text === "string"
-          ? (textBlock as any).text
-          : "";
-      digestText = textValue.trim() || digestText;
+      const textBlock = completion.content.find(
+        (item): item is TextBlock => item.type === "text",
+      );
+      digestText = textBlock?.text.trim() || digestText;
     } else {
       if (!this.openai) {
         throw new InternalServerErrorException(

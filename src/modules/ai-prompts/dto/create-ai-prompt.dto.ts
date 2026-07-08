@@ -1,9 +1,17 @@
-import { IsOptional, IsString, IsUUID } from "class-validator";
+import { IsIn, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class CreateAiPromptDto {
   @IsOptional()
+  @IsString()
+  @IsIn(["GLOBAL", "WORKSPACE"])
+  scope?: "GLOBAL" | "WORKSPACE";
+
+  @IsOptional()
   @IsUUID()
   workspaceId?: string;
+
+  @IsUUID()
+  createdById: string;
 
   @IsString()
   name: string;

@@ -21,6 +21,11 @@ enum TokenType {
   login_otp
 }
 
+enum PromptScope {
+  GLOBAL
+  WORKSPACE
+}
+
 // ==========================================
 // MODULE 1: USERS, WORKSPACES & BILLING
 // ==========================================
@@ -42,6 +47,7 @@ model User {
   subscription       Subscription?
   companies          Company[]
   workspaceMembers   WorkspaceMember[]
+  aiPrompts          AiPrompt[]
 
   @@map("users")
 }
@@ -182,16 +188,20 @@ model RawPostsBuffer {
 // ==========================================
 
 model AiPrompt {
-  id          String    @id @default(uuid()) @db.Uuid
-  workspaceId String?   @map("workspace_id") @db.Uuid // Global হলে Null থাকবে
-  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  name        String    @map("name")
-  description String?   @map("description") @db.Text
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id          String      @id @default(uuid()) @db.Uuid
+  scope       PromptScope @default(WORKSPACE) @map("scope")
+  workspaceId String?     @map("workspace_id") @db.Uuid
+  workspace   Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdById String      @map("created_by_id") @db.Uuid
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  name        String      @map("name")
+  description String?     @map("description") @db.Text
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   // Relations
   versions PromptVersion[]
 
+  @@index([scope, workspaceId])
   @@map("ai_prompts")
 }
 

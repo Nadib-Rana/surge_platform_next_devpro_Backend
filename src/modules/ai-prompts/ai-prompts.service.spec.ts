@@ -82,6 +82,7 @@ describe("AiPromptsService", () => {
 
     const result = await service.createPromptWithVersion({
       workspaceId: "workspace-1",
+      createdById: "user-1",
       name: "Launch Digest",
       description: "Social digest prompt",
       systemPrompt: "Write a high-engagement digest",
@@ -91,8 +92,8 @@ describe("AiPromptsService", () => {
 
     expect(prisma.aiPrompt.create).toHaveBeenCalled();
     expect(prisma.promptVersion.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
+      expect.objectContaining<{ data: unknown }>({
+        data: expect.objectContaining<{ promptId: string; tone: string }>({
           promptId: "prompt-1",
           tone: "professional",
         }),

@@ -76,6 +76,7 @@
 ## 🟩 Module 4: AI Creative Engine & Asset Pipeline `[STATUS: 100% COMPLETE]`
 
 * [x] **Prompt Version Control Matrix:** `AiPrompt` এবং `PromptVersion` টেবিল ডিজাইন ও আর্কিটেকচার, যা এআই প্রম্পটের হিস্ট্রি এবং টোন ট্র্যাক রাখবে।
+* [x] **Prompt Version Control Matrix:** Upgraded to an explicit dual-tier tracking engine. Integrated `PromptScope` (GLOBAL/WORKSPACE) enums alongside `createdById` user-ownership constraints to prevent cross-tenant token leaks, and patched `AiPromptService` with an idempotent OR-lookup query for unified template discovery.
 
 
 * [x] **Batch Digest Aggregator:** বাফারে থাকা একাধিক র-আর্টিকেলকে একসাথে কম্বাইন করে OpenAI API-তে পাঠিয়ে ১টি ট্রেন্ডিং "Batch Digest" সোশ্যাল মিডিয়া কন্টেন্ট ও টেক্সট রেডি করা।
