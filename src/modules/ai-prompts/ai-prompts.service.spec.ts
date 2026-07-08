@@ -29,7 +29,7 @@ jest.mock("@anthropic-ai/sdk", () => ({
 describe("AiPromptsService", () => {
   let service: AiPromptsService;
   let prisma: {
-    aiPrompt: { create: jest.Mock };
+    aiPrompt: { create: jest.Mock; findMany: jest.Mock; findUnique: jest.Mock };
     promptVersion: { create: jest.Mock; findFirst: jest.Mock };
     rawPostsBuffer: { findMany: jest.Mock };
     generatedDraft: { create: jest.Mock };
@@ -38,7 +38,11 @@ describe("AiPromptsService", () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma = {
-      aiPrompt: { create: jest.fn() },
+      aiPrompt: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+      },
       promptVersion: { create: jest.fn(), findFirst: jest.fn() },
       rawPostsBuffer: { findMany: jest.fn() },
       generatedDraft: { create: jest.fn() },
@@ -100,6 +104,112 @@ describe("AiPromptsService", () => {
       }),
     );
     expect(result.prompt.id).toBe("prompt-1");
+  });
+
+  it("rejects global prompt creation for non-admin users", async () => {
+    await expect(
+      service.createPromptWithVersion(
+        {
+          scope: "GLOBAL",
+          createdById: "user-1",
+          name: "Global Digest",
+          systemPrompt: "Write a high-engagement digest",
+        },
+        { userId: "user-1", role: "customer" },
+      ),
+    ).rejects.toThrow("Only admins can create global prompts");
+  });
+
+  it("allows global prompt creation for admins", async () => {
+    prisma.aiPrompt.create.mockResolvedValue({ id: "prompt-1" });
+    prisma.promptVersion.create.mockResolvedValue({ id: "version-1" });
+
+    await service.createPromptWithVersion(
+      {
+        scope: "GLOBAL",
+        createdById: "admin-1",
+        name: "Global Digest",
+        systemPrompt: "Write a high-engagement digest",
+      },
+      { userId: "admin-1", role: "admin" },
+    );
+
+    expect(prisma.aiPrompt.create).toHaveBeenCalledWith(
+      expect.objectContaining<{ data: unknown }>({
+        data: expect.objectContaining<{
+          scope: "GLOBAL";
+          workspaceId: null;
+          createdById: string;
+        }>({
+          scope: "GLOBAL",
+          workspaceId: null,
+          createdById: "admin-1",
+        }),
+      }),
+    );
+  });
+
+  it("lists only global prompts", async () => {
+    prisma.aiPrompt.findMany.mockResolvedValue([
+      { id: "global-prompt", scope: "GLOBAL", createdById: "admin-1" },
+    ]);
+
+    await service.findGlobalPrompts();
+
+    expect(prisma.aiPrompt.findMany).toHaveBeenCalledWith({
+      where: { scope: "GLOBAL" },
+      include: { versions: true },
+      orderBy: { createdAt: "desc" },
+    });
+  });
+
+  it("lists only the user's own workspace prompts", async () => {
+    prisma.aiPrompt.findMany.mockResolvedValue([
+      { id: "workspace-prompt", scope: "WORKSPACE", createdById: "user-1" },
+    ]);
+
+    await service.findWorkspacePrompts({
+      userId: "user-1",
+      role: "customer",
+    });
+
+    expect(prisma.aiPrompt.findMany).toHaveBeenCalledWith({
+      where: { scope: "WORKSPACE", createdById: "user-1" },
+      include: { versions: true },
+      orderBy: { createdAt: "desc" },
+    });
+  });
+
+  it("returns a global prompt for any authenticated user", async () => {
+    prisma.aiPrompt.findUnique.mockResolvedValue({
+      id: "global-prompt",
+      scope: "GLOBAL",
+      createdById: "admin-1",
+      versions: [],
+    });
+
+    const result = await service.findOne("global-prompt", {
+      userId: "user-1",
+      role: "customer",
+    });
+
+    expect(result.id).toBe("global-prompt");
+  });
+
+  it("hides another user's workspace prompt", async () => {
+    prisma.aiPrompt.findUnique.mockResolvedValue({
+      id: "workspace-prompt",
+      scope: "WORKSPACE",
+      createdById: "user-2",
+      versions: [],
+    });
+
+    await expect(
+      service.findOne("workspace-prompt", {
+        userId: "user-1",
+        role: "customer",
+      }),
+    ).rejects.toThrow("AI prompt workspace-prompt not found");
   });
 
   it("uses Anthropic Claude when the request targets a Claude model", async () => {

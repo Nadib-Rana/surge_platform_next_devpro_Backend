@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -13,6 +14,11 @@ import { ConfigService } from "@nestjs/config";
 import OpenAI from "openai";
 import { Anthropic } from "@anthropic-ai/sdk";
 import { type TextBlock } from "@anthropic-ai/sdk/resources/messages";
+
+interface AuthenticatedUser {
+  userId: string;
+  role: string;
+}
 
 @Injectable()
 export class AiPromptsService {
@@ -33,24 +39,36 @@ export class AiPromptsService {
       : null;
   }
 
-  async create(createAiPromptDto: CreateAiPromptDto) {
-    return this.createPromptWithVersion(createAiPromptDto);
+  async create(createAiPromptDto: CreateAiPromptDto, user: AuthenticatedUser) {
+    return this.createPromptWithVersion(createAiPromptDto, user);
   }
 
-  async findAll() {
+  async findGlobalPrompts() {
     return this.prisma.aiPrompt.findMany({
+      where: { scope: "GLOBAL" },
       include: { versions: true },
       orderBy: { createdAt: "desc" },
     });
   }
 
-  async findOne(id: string) {
+  async findWorkspacePrompts(user: AuthenticatedUser) {
+    return this.prisma.aiPrompt.findMany({
+      where: { scope: "WORKSPACE", createdById: user.userId },
+      include: { versions: true },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  async findOne(id: string, user: AuthenticatedUser) {
     const prompt = await this.prisma.aiPrompt.findUnique({
       where: { id },
       include: { versions: true },
     });
 
-    if (!prompt) {
+    if (
+      !prompt ||
+      (prompt.scope === "WORKSPACE" && prompt.createdById !== user.userId)
+    ) {
       throw new NotFoundException(`AI prompt ${id} not found`);
     }
 
@@ -119,12 +137,19 @@ export class AiPromptsService {
     return this.prisma.aiPrompt.delete({ where: { id } });
   }
 
-  async createPromptWithVersion(dto: CreateAiPromptDto) {
+  async createPromptWithVersion(
+    dto: CreateAiPromptDto,
+    user?: AuthenticatedUser,
+  ) {
     if (!dto.createdById) {
       throw new BadRequestException("createdById is required");
     }
 
     if (dto.scope === "GLOBAL") {
+      if (user?.role !== "admin") {
+        throw new ForbiddenException("Only admins can create global prompts");
+      }
+
       if (dto.workspaceId) {
         throw new BadRequestException(
           "workspaceId must be omitted for global prompts",

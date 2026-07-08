@@ -872,6 +872,10 @@
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
                   }
                 ],
                 "body": {
@@ -890,17 +894,45 @@
               }
             },
             {
-              "name": "List AI Prompts",
+              "name": "List Global AI Prompts",
               "request": {
                 "method": "GET",
-                "header": [],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
                 "url": {
-                  "raw": "{{baseUrl}}/ai-prompts",
+                  "raw": "{{baseUrl}}/ai-prompts/global",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
-                    "ai-prompts"
+                    "ai-prompts",
+                    "global"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Workspace AI Prompts",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/ai-prompts/workspace",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "ai-prompts",
+                    "workspace"
                   ]
                 }
               }
@@ -909,7 +941,12 @@
               "name": "Get AI Prompt By ID",
               "request": {
                 "method": "GET",
-                "header": [],
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{baseUrl}}/ai-prompts/{{aiPromptId}}",
                   "host": [
