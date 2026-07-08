@@ -23,6 +23,22 @@ services:
         networks:
             - surge_platform_network
 
+    minio:
+        image: minio/minio:latest
+        container_name: surge_platform_minio
+        restart: unless-stopped
+        environment:
+            MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+            MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+        command: server /data --console-address ":9001"
+        ports:
+            - '9000:9000'
+            - '9001:9001'
+        volumes:
+            - minio_data:/data
+        networks:
+            - surge_platform_network
+
 networks:
     surge_platform_network:
         driver: bridge
@@ -32,3 +48,6 @@ volumes:
     surge_platform_data:
         driver: local
         name: surge_platform_data
+    minio_data:
+        driver: local
+        name: minio_data
