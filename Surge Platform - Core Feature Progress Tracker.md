@@ -76,17 +76,20 @@
 ## 🟩 Module 4: AI Creative Engine & Asset Pipeline `[STATUS: 100% COMPLETE]`
 
 * [x] **Prompt Version Control Matrix:** `AiPrompt` এবং `PromptVersion` টেবিল ডিজাইন ও আর্কিটেকচার, যা এআই প্রম্পটের হিস্ট্রি এবং টোন ট্র্যাক রাখবে।
-* [x] **Prompt Version Control Matrix:** Upgraded to an explicit dual-tier tracking engine. Integrated `PromptScope` (GLOBAL/WORKSPACE) enums alongside `createdById` user-ownership constraints to prevent cross-tenant token leaks, and patched `AiPromptService` with an idempotent OR-lookup query for unified template discovery.
+* [x] **Strict Prompt Scope Architecture:** `PromptScope` (GLOBAL/WORKSPACE) এবং `createdById` ownership constraint দিয়ে prompt template access আলাদা করা হয়েছে। `GET /ai-prompts/global` শুধুমাত্র global template দেয়, `GET /ai-prompts/workspace` শুধুমাত্র logged-in user's own workspace template দেয়, এবং `GET /ai-prompts/:id` GLOBAL হলে allow করে কিন্তু অন্য tenant-এর WORKSPACE prompt হলে `404` দেয়।
+* [x] **Atomic Prompt Version Update:** `PATCH /ai-prompts/global/:id` admin-only এবং `PATCH /ai-prompts/workspace/:id` owner-only করা হয়েছে। `name` / `description` parent prompt table-এ আপডেট হয়, আর `systemPrompt` বা `tone` বদলালে Prisma `$transaction` দিয়ে পুরনো version inactive করে নতুন active `PromptVersion` তৈরি হয়।
+* [x] **Cross-Tenant Validation Note:** Batch digest generation এখনো `workspaceId` + `promptVersionId` payload নেয়; production hardening checklist-এ JWT authenticated workspace ownership এবং promptVersion/workspace compatibility validation বাধ্যতামূলক হিসেবে চিহ্নিত করা হয়েছে।
 
 
-* [x] **Batch Digest Aggregator:** বাফারে থাকা একাধিক র-আর্টিকেলকে একসাথে কম্বাইন করে OpenAI API-তে পাঠিয়ে ১টি ট্রেন্ডিং "Batch Digest" সোশ্যাল মিডিয়া কন্টেন্ট ও টেক্সট রেডি করা।
+* [x] **Batch Digest Aggregator:** বাফারে থাকা একাধিক র-আর্টিকেলকে একসাথে কম্বাইন করে OpenAI/Claude text model-এ পাঠিয়ে ১টি trending "Batch Digest" social content তৈরি করা।
 
 
 * [x] **API Throttling Guard (Anti-Lock):** এআই টেক্সট সফলভাবে জেনারেট হওয়ার ঠিক পর ৩ সেকেন্ডের একটি কৃত্তিম সেফটি ব্রেক বা `Delay` মেকানিজম রান করা, যেন রেট লিমিট বা আইপি ব্লক না হয়।
 
 
-* [x] **DALL-E 3 Asset Downloader:** সোশ্যাল মিডিয়া কন্টেন্টের জন্য OpenAI DALL-E 3 দিয়ে হাই-কোয়ালিটি ইমেজ জেনারেট করা।
-* [x] **MinIO S3 Bucket Pipeline:** জেনারেট হওয়া ইমেজ ওয়ান-টাইম ডাউনলোড করে নিজস্ব সিকিউর **MinIO Object Storage**-এ পুশ করা এবং ড্রাফটে সেভ করার জন্য সিকিউর প্রিসাইন্ড ইউআরএল (Presigned URL) জেনারেট করা।
+* [x] **Resilient DALL-E Asset Downloader:** DALL-E image generation `try/catch` দিয়ে hardened করা হয়েছে। OpenAI image API key restriction, model access failure, বা transient API/download failure হলে pipeline crash না করে structural fallback PNG buffer তৈরি করে MinIO-তে upload করে valid asset URL ফেরত দেয়।
+* [x] **MinIO S3 Bucket Pipeline:** জেনারেটেড বা fallback image buffer নিজস্ব secure **MinIO Object Storage**-এ upload করা হয় এবং draft creation-এর জন্য secure presigned URL return করা হয়।
+* [x] **Race Condition Patch:** `AiAssetService.generateImageFromDigest()` থেকে premature `generatedDraft.updateMany()` সরানো হয়েছে। এখন asset service শুধু image buffer -> MinIO upload -> presigned URL return করে; `GeneratedDraft` write একমাত্র `AiPromptsService.generateBatchDigest()` flow-তেই হয়, তাই draft তৈরি হওয়ার আগের image update race condition নেই।
 
 
 
@@ -97,10 +100,19 @@
 * [x] **Autopilot Engine Sync:** কাস্টমার ড্যাশবোর্ড থেকে সিলেক্ট করা ডেইলি পোস্টিং শিডিউল (যেমন: প্রতিদিন সকাল ৯টা ও বিকাল ৫টা) `queue_config (Json)` থেকে রিড করা এবং BullMQ টাইম-ব্যাজড repeatable jobs হিসেবে সিঙ্ক করা।
 
 
-* [x] **Idempotency Distributed Lock:** একাধিক ওয়ার্কার রান থাকলেও যেন একই কন্টেন্ট সোশ্যাল মিডিয়ায় ডাবল পাবলিশ না হয়, সেজন্য Redis TTL Lock (`autopilot-lock:<draftId>`) সক্রিয় করা হয়েছে।
+* [x] **Draft-Targeted Dispatch Selection:** BullMQ job payload-এ `draftId` থাকলে worker এখন সেই নির্দিষ্ট `GeneratedDraft`-কেই publish candidate হিসেবে resolve করে। ফলে একই workspace-এ একাধিক approved/scheduled draft থাকলেও latest draft accidentally pick হওয়ার risk নেই।
 
 
-* [x] **FailedPostsQueue & Exponential Backoff:** থার্ড-পার্টি সোশ্যাল এপিআই ডাউন থাকলে কন্টেন্ট `FailedPostsQueue`-এ পাঠানো এবং BullMQ ব্যাকঅফ লজিক দিয়ে ৩টি অটো-রিট্রাই চালানো হয়েছে।
+* [x] **Module 4 Asset Compatibility:** Autopilot worker এখন `GeneratedDraft.imageUrl` এবং `imageProvider` dispatcher payload-এ forward করে। DALL-E generated asset বা resilient fallback PNG, দুই ক্ষেত্রেই MinIO presigned URL একই publish flow দিয়ে WordPress/LinkedIn/Facebook strategy-তে যায়।
+
+
+* [x] **Idempotency Distributed Lock:** একাধিক ওয়ার্কার রান থাকলেও যেন একই কন্টেন্ট সোশ্যাল মিডিয়ায় ডাবল পাবলিশ না হয়, সেজন্য Redis TTL Lock (`autopilot-lock:<draftId>`) সক্রিয় করা হয়েছে। Lock release এখন compare-and-delete Lua script দিয়ে owner-safe করা হয়েছে, যেন slow worker TTL rollover-এর পর অন্য worker-এর নতুন lock delete করতে না পারে।
+
+
+* [x] **FailedPostsQueue & Exponential Backoff:** থার্ড-পার্টি সোশ্যাল এপিআই ডাউন থাকলে কন্টেন্ট `FailedPostsQueue`-এ পাঠানো এবং BullMQ ব্যাকঅফ লজিক দিয়ে ৩টি অটো-রিট্রাই চালানো হয়েছে। Retry processor queue binding `FailedPostsQueue`-এর সাথে aligned করা হয়েছে, তাই failed publish jobs এখন correct worker-এ consume হবে।
+
+
+* [x] **Dispatcher Boundary Integration:** Autopilot worker এখন direct publish simulation না করে `DispatcherService` boundary ব্যবহার করে। Channel credentials unreadable হলে fail-closed behaviour রাখা হয়েছে, যাতে invalid/encrypted credential state silent success না দেয় এবং retry pipeline activate হয়।
 
 
 

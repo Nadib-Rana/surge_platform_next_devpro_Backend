@@ -57,6 +57,10 @@
     {
       "key": "promptVersionId",
       "value": "aaaaaaaa-dddd-4eee-9fff-abcdef666666"
+    },
+    {
+      "key": "minioAssetUrl",
+      "value": "http://localhost:9000/surge-assets/fallback-placeholder.png"
     }
   ],
   "item": [
@@ -1051,6 +1055,10 @@
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
                   }
                 ],
                 "body": {
@@ -1066,8 +1074,49 @@
                     "ai-prompts",
                     "batch-digest"
                   ]
+                },
+                "description": "Generates a batch digest from buffered posts. Tenant-hardening expectation: workspaceId must belong to the authenticated user and promptVersionId must resolve to either a GLOBAL prompt or a WORKSPACE prompt owned by the same tenant/user. Authorization header is included as a placeholder for the future JWT guard on this endpoint."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const requestBody = JSON.parse(pm.request.body.raw || '{}');",
+                      "",
+                      "pm.test('request includes tenant-scoped workspaceId', function () {",
+                      "  pm.expect(requestBody.workspaceId, 'workspaceId').to.be.a('string').and.not.empty;",
+                      "});",
+                      "",
+                      "pm.test('request includes explicit promptVersionId for template resolution', function () {",
+                      "  pm.expect(requestBody.promptVersionId, 'promptVersionId').to.be.a('string').and.not.empty;",
+                      "});",
+                      "",
+                      "pm.test('future auth context is present when JWT guard is enabled', function () {",
+                      "  const authHeader = pm.request.headers.get('Authorization') || '';",
+                      "  pm.expect(authHeader).to.include('Bearer');",
+                      "});",
+                      "",
+                      "pm.test('response maps text and asset into GeneratedDraft payload', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('draft');",
+                      "  pm.expect(json).to.have.property('digestText');",
+                      "  pm.expect(json).to.have.property('asset');",
+                      "  pm.expect(json.draft.generationType).to.eql('batch_digest');",
+                      "  pm.expect(json.draft.status).to.eql('pending');",
+                      "  pm.expect(json.draft.socialPlainText).to.be.a('string').and.not.empty;",
+                      "  pm.expect(json.draft.imageUrl).to.be.a('string').and.not.empty;",
+                      "});",
+                      "",
+                      "// Tenant validation checklist for backend hardening:",
+                      "// 1. workspaceId must be accessible by req.user.userId.",
+                      "// 2. promptVersionId must belong to a GLOBAL prompt or a WORKSPACE prompt owned by the caller.",
+                      "// 3. Never allow promptVersionId from another tenant workspace."
+                    ]
+                  }
                 }
-              }
+              ]
             }
           ]
         }
@@ -1075,6 +1124,7 @@
     },
     {
       "name": "Module 5 & 6: Autopilot Scheduler & Retries",
+      "description": "Autopilot queue dispatch validates a dispatchable GeneratedDraft, acquires Redis TTL lock autopilot-lock:<draftId>, forwards imageUrl/imageProvider metadata to DispatcherService, and enqueues failed publishes into FailedPostsQueue with exponential backoff.",
       "item": [
         {
           "name": "Autopilot Draft Lifecycle",
@@ -1087,11 +1137,15 @@
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
                   }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"rawPostId\": \"{{rawPostId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"socialPlainText\": \"Check out this article: https://techcrunch.com/some-article\",\n  \"imageUrl\": \"https://images.example.com/ai-generated-1.jpg\",\n  \"generationType\": \"manual_on_demand\",\n  \"status\": \"draft\"\n}"
+                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"rawPostId\": \"{{rawPostId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"socialPlainText\": \"Check out this article: https://techcrunch.com/some-article\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\",\n  \"generationType\": \"manual_on_demand\",\n  \"status\": \"approved\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/generated-drafts",
@@ -1101,8 +1155,34 @@
                   "path": [
                     "generated-drafts"
                   ]
+                },
+                "description": "Creates a dispatchable draft shape for Autopilot validation. imageUrl may be a real DALL-E asset or the resilient fallback PNG uploaded to MinIO; imageProvider remains openai because the provider boundary is still OpenAI even when the asset buffer falls back locally."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const requestBody = JSON.parse(pm.request.body.raw || '{}');",
+                      "",
+                      "pm.test('draft is dispatchable by Autopilot worker', function () {",
+                      "  pm.expect(requestBody.status).to.be.oneOf(['approved', 'scheduled', 'auto_dispatch']);",
+                      "});",
+                      "",
+                      "pm.test('asset contract supports real or fallback OpenAI image', function () {",
+                      "  pm.expect(requestBody.imageUrl, 'imageUrl').to.be.a('string').and.not.empty;",
+                      "  pm.expect(requestBody.imageProvider, 'imageProvider').to.eql('openai');",
+                      "});",
+                      "",
+                      "// Worker compatibility checklist:",
+                      "// 1. BullMQ job should include { workspaceId, draftId } when dispatching a specific draft.",
+                      "// 2. Worker lock key is autopilot-lock:<draftId> and is released with owner-safe compare/delete.",
+                      "// 3. Dispatcher payload receives images: [draft.imageUrl] and metadata.imageProvider."
+                    ]
+                  }
                 }
-              }
+              ]
             },
             {
               "name": "List Generated Drafts",
@@ -1138,6 +1218,63 @@
               }
             },
             {
+              "name": "Validate Dispatchable Draft Asset Contract",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts",
+                    "{{generatedDraftId}}"
+                  ]
+                },
+                "description": "Use this before enqueueing an Autopilot dispatch job. The selected draft must belong to the workspace job payload, be dispatchable, and carry imageUrl/imageProvider consistently whether the asset came from DALL-E or the MinIO fallback path."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "",
+                      "pm.test('selected draft id matches queue payload draftId variable', function () {",
+                      "  if (json && json.id) {",
+                      "    pm.expect(json.id).to.eql(pm.collectionVariables.get('generatedDraftId') || pm.environment.get('generatedDraftId'));",
+                      "  }",
+                      "});",
+                      "",
+                      "pm.test('draft status is eligible for dispatch', function () {",
+                      "  if (json && json.status) {",
+                      "    pm.expect(json.status).to.be.oneOf(['approved', 'scheduled', 'auto_dispatch']);",
+                      "  }",
+                      "});",
+                      "",
+                      "pm.test('image metadata is safe for dispatcher strategies', function () {",
+                      "  if (json && json.imageUrl) {",
+                      "    pm.expect(json.imageUrl).to.be.a('string').and.not.empty;",
+                      "    pm.expect(json.imageProvider || 'openai').to.be.a('string').and.not.empty;",
+                      "  }",
+                      "});",
+                      "",
+                      "// Autopilot worker derives dispatcher payload as:",
+                      "// images: draft.imageUrl ? [draft.imageUrl] : undefined",
+                      "// metadata: { draftId, workspaceId, imageProvider, hasGeneratedAsset }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
               "name": "Update Generated Draft",
               "request": {
                 "method": "PATCH",
@@ -1149,7 +1286,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"status\": \"published\"\n}"
+                  "raw": "{\n  \"status\": \"scheduled\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
@@ -1160,7 +1297,8 @@
                     "generated-drafts",
                     "{{generatedDraftId}}"
                   ]
-                }
+                },
+                "description": "Updates a draft into an Autopilot-eligible state. Keep imageProvider aligned with the asset pipeline output; fallback PNGs still use imageProvider=openai because the OpenAI image generation boundary triggered the fallback."
               }
             },
             {

@@ -29,6 +29,11 @@ interface UpdateablePrompt {
   scope: PromptScope;
 }
 
+interface BatchDigestContent {
+  socialPlainText: string;
+  wordpressHtmlContent: string;
+}
+
 @Injectable()
 export class AiPromptsService {
   private readonly openai: OpenAI | null;
@@ -357,11 +362,13 @@ export class AiPromptsService {
         completion.choices[0]?.message?.content?.trim() ?? digestText;
     }
 
+    const generatedContent = this.parseBatchDigestContent(digestText);
+
     await this.sleep(3000);
 
     const asset = await this.aiAssetService.generateImageFromDigest({
       workspaceId: dto.workspaceId,
-      digestText,
+      digestText: generatedContent.socialPlainText,
       promptVersionId: promptVersion.id,
     });
 
@@ -371,20 +378,100 @@ export class AiPromptsService {
         promptVersionId: promptVersion.id,
         rawPostId: null,
         generationType: "batch_digest",
-        socialPlainText: digestText,
+        wordpressHtmlContent: generatedContent.wordpressHtmlContent,
+        socialPlainText: generatedContent.socialPlainText,
         imageUrl: asset.imageUrl,
-        imageProvider: selectedModel.startsWith("claude")
-          ? "anthropic"
-          : "openai",
+        imageProvider: asset.provider,
         status: "pending",
       },
     });
 
     return {
       draft,
-      digestText,
+      digestText: generatedContent.socialPlainText,
       asset,
     };
+  }
+
+  private parseBatchDigestContent(rawContent: string): BatchDigestContent {
+    const trimmedContent = rawContent.trim();
+    const parsedJson = this.tryParseDigestJson(trimmedContent);
+    if (parsedJson) {
+      return parsedJson;
+    }
+
+    const wordpressMatch = trimmedContent.match(
+      /(?:wordpressHtmlContent|wordpress_html_content|wordpress html|blog html)\s*[:=-]\s*([\s\S]*?)(?=\n\s*(?:socialPlainText|social_plain_text|social text|social)\s*[:=-]|$)/i,
+    );
+    const socialMatch = trimmedContent.match(
+      /(?:socialPlainText|social_plain_text|social text|social)\s*[:=-]\s*([\s\S]*?)(?=\n\s*(?:wordpressHtmlContent|wordpress_html_content|wordpress html|blog html)\s*[:=-]|$)/i,
+    );
+
+    const wordpressHtmlContent = wordpressMatch?.[1]?.trim();
+    const socialPlainText = socialMatch?.[1]?.trim();
+
+    if (wordpressHtmlContent || socialPlainText) {
+      const fallbackText = this.stripHtml(
+        wordpressHtmlContent ?? socialPlainText ?? trimmedContent,
+      );
+
+      return {
+        wordpressHtmlContent:
+          wordpressHtmlContent ?? this.wrapPlainTextForWordPress(fallbackText),
+        socialPlainText: socialPlainText ?? fallbackText,
+      };
+    }
+
+    return {
+      wordpressHtmlContent: this.wrapPlainTextForWordPress(trimmedContent),
+      socialPlainText: trimmedContent,
+    };
+  }
+
+  private tryParseDigestJson(rawContent: string): BatchDigestContent | null {
+    try {
+      const parsed = JSON.parse(rawContent) as Partial<BatchDigestContent>;
+      if (
+        typeof parsed.socialPlainText === "string" ||
+        typeof parsed.wordpressHtmlContent === "string"
+      ) {
+        const socialPlainText =
+          parsed.socialPlainText?.trim() ??
+          this.stripHtml(parsed.wordpressHtmlContent ?? "");
+        const wordpressHtmlContent =
+          parsed.wordpressHtmlContent?.trim() ??
+          this.wrapPlainTextForWordPress(socialPlainText);
+
+        return {
+          socialPlainText,
+          wordpressHtmlContent,
+        };
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  private wrapPlainTextForWordPress(content: string): string {
+    return `<article><p>${this.escapeHtml(content)}</p></article>`;
+  }
+
+  private stripHtml(content: string): string {
+    return content
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private escapeHtml(content: string): string {
+    return content
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   private async sleep(delayMs: number) {

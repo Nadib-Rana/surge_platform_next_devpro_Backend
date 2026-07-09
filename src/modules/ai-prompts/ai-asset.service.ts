@@ -1,14 +1,19 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "../../common/context/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import https from "https";
+import OpenAI from "openai";
 
 @Injectable()
 export class AiAssetService {
+  private readonly logger = new Logger(AiAssetService.name);
+
   constructor(
     private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
   ) {}
 
@@ -24,25 +29,36 @@ export class AiAssetService {
       );
     }
 
-    const openai = (await import("openai")).default;
-    const client = new openai({ apiKey });
+    let buffer: Buffer;
+    let usedFallback = false;
 
-    const imageResponse = await client.images.generate({
-      model: "dall-e-3",
-      prompt: `Create a vivid social media hero image for the following digest. Keep it polished, brand-safe, and visually rich: ${dto.digestText}`,
-      size: "1024x1024",
-      quality: "standard",
-      n: 1,
-    });
+    try {
+      const client = new OpenAI({ apiKey });
 
-    const imageUrl = imageResponse.data?.[0]?.url;
-    if (!imageUrl) {
-      throw new InternalServerErrorException(
-        "DALL-E 3 did not return an image URL",
+      const imageResponse = await client.images.generate({
+        model: "dall-e-3",
+        prompt: `Create a vivid social media hero image for the following digest. Keep it polished, brand-safe, and visually rich: ${dto.digestText}`,
+        size: "1024x1024",
+        quality: "standard",
+        n: 1,
+      });
+
+      const imageUrl = imageResponse.data?.[0]?.url;
+      if (!imageUrl) {
+        throw new InternalServerErrorException(
+          "DALL-E 3 did not return an image URL",
+        );
+      }
+
+      buffer = await this.downloadToBuffer(imageUrl);
+    } catch (error) {
+      usedFallback = true;
+      this.logger.warn(
+        `DALL-E image generation failed; uploading fallback PNG asset instead. ${this.formatError(error)}`,
       );
+      buffer = this.createFallbackPngBuffer();
     }
 
-    const buffer = await this.downloadToBuffer(imageUrl);
     const objectName = `workspaces/${dto.workspaceId}/assets/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
 
     const presignedUrl = await this.storageService.uploadBuffer(
@@ -51,21 +67,29 @@ export class AiAssetService {
       "image/png",
     );
 
-    await this.prisma.generatedDraft.updateMany({
-      where: {
-        workspaceId: dto.workspaceId,
-        promptVersionId: dto.promptVersionId,
-        status: "pending",
-      },
-      data: { imageUrl: presignedUrl },
-    });
-
     return {
       imageUrl: presignedUrl,
       objectName,
       bucketName:
         this.configService.get<string>("MINIO_BUCKET") ?? "surge-assets",
+      provider: "openai",
+      usedFallback,
     };
+  }
+
+  private createFallbackPngBuffer() {
+    return Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+      "base64",
+    );
+  }
+
+  private formatError(error: unknown) {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return String(error);
   }
 
   private async downloadToBuffer(url: string): Promise<Buffer> {
@@ -81,7 +105,7 @@ export class AiAssetService {
             return;
           }
 
-          const chunks: Buffer[] = [];
+          const chunks: Uint8Array[] = [];
           response.on("data", (chunk) =>
             chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
           );

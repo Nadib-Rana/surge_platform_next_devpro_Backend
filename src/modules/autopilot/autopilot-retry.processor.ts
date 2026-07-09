@@ -10,7 +10,7 @@ interface FailedPostRetryPayload {
 }
 
 @Injectable()
-@Processor("failed-posts-queue")
+@Processor("FailedPostsQueue")
 export class FailedPostsRetryProcessor extends WorkerHost {
   private readonly logger = new Logger(FailedPostsRetryProcessor.name);
 
