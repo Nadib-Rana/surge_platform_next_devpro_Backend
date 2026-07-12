@@ -17,9 +17,14 @@ interface AuthenticatedUser {
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(_createCompanyDto: CreateCompanyDto) {
-    void _createCompanyDto;
-    return "This action adds a new company";
+  async create(createCompanyDto: CreateCompanyDto, user: AuthenticatedUser) {
+    return this.prisma.company.create({
+      data: {
+        ownerId: user.userId,
+        name: createCompanyDto.name,
+        status: "active",
+      },
+    });
   }
 
   findAll(user: AuthenticatedUser) {
@@ -79,7 +84,20 @@ export class CompaniesService {
     });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} company`;
+  async remove(id: string, user: AuthenticatedUser) {
+    const company = await this.prisma.company.findUnique({
+      where: { id },
+      select: { id: true, ownerId: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException(`Company ${id} not found`);
+    }
+
+    if (user.role !== "admin" && company.ownerId !== user.userId) {
+      throw new ForbiddenException("You can only delete your own company");
+    }
+
+    return this.prisma.company.delete({ where: { id } });
   }
 }

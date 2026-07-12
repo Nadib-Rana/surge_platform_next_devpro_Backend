@@ -14,13 +14,11 @@ describe("RegistrationService", () => {
 
     tx = {
       user: {
-        update: jest
-          .fn()
-          .mockResolvedValue({
-            id: "user-1",
-            email: "user@example.com",
-            role: "customer",
-          }),
+        update: jest.fn().mockResolvedValue({
+          id: "user-1",
+          email: "user@example.com",
+          role: "customer",
+        }),
       },
       verificationToken: {
         update: jest.fn().mockResolvedValue({ id: "token-1", used: true }),

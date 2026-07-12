@@ -2,6 +2,11 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/context/prisma.service";
 import { CreateRssSourceDto } from "./dto/create-rss-source.dto";
 import { RssSchedulerService } from "./rss-scheduler.service";
+
+interface UpdateRssSourceDto {
+  feedUrl?: string;
+  status?: string;
+}
 import {
   ForbiddenException,
   NotFoundException,
@@ -82,6 +87,49 @@ export class RssSourcesService {
     await this.getWorkspaceAndCompanyOwner(workspaceId); // validate existence
     return this.prisma.rssFeed.findMany({
       where: { workspaceId, status: "active" },
+    });
+  }
+
+  async getOne(workspaceId: string, sourceId: string) {
+    await this.getWorkspaceAndCompanyOwner(workspaceId);
+
+    const feed = await this.prisma.rssFeed.findFirst({
+      where: { id: sourceId, workspaceId },
+    });
+
+    if (!feed) {
+      throw new NotFoundException("RSS feed not found");
+    }
+
+    return feed;
+  }
+
+  async update(
+    workspaceId: string,
+    sourceId: string,
+    dto: UpdateRssSourceDto,
+  ) {
+    await this.getWorkspaceAndCompanyOwner(workspaceId);
+
+    const feed = await this.prisma.rssFeed.findFirst({
+      where: { id: sourceId, workspaceId },
+    });
+
+    if (!feed) {
+      throw new NotFoundException("RSS feed not found");
+    }
+
+    const data: Record<string, unknown> = {};
+    if (dto.feedUrl) data.feedUrl = dto.feedUrl;
+    if (dto.status) data.status = dto.status;
+
+    if (Object.keys(data).length === 0) {
+      return feed;
+    }
+
+    return this.prisma.rssFeed.update({
+      where: { id: sourceId },
+      data,
     });
   }
 

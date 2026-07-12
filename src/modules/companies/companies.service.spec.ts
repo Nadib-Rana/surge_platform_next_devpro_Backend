@@ -6,18 +6,22 @@ describe("CompaniesService", () => {
   let service: CompaniesService;
   let prisma: {
     company: {
+      create: jest.Mock;
       findMany: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
+      delete: jest.Mock;
     };
   };
 
   beforeEach(async () => {
     prisma = {
       company: {
+        create: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
       },
     };
 
@@ -33,6 +37,29 @@ describe("CompaniesService", () => {
 
   it("should be defined", () => {
     expect(service).toBeDefined();
+  });
+
+  it("creates a company for the current owner", async () => {
+    prisma.company.create.mockResolvedValue({
+      id: "company-1",
+      ownerId: "user-1",
+      name: "Acme Media Labs",
+      status: "active",
+    });
+
+    const result = await service.create(
+      { name: "Acme Media Labs" },
+      { userId: "user-1", role: "customer" },
+    );
+
+    expect(prisma.company.create).toHaveBeenCalledWith({
+      data: {
+        ownerId: "user-1",
+        name: "Acme Media Labs",
+        status: "active",
+      },
+    });
+    expect(result.name).toBe("Acme Media Labs");
   });
 
   it("returns only owned companies for a customer", async () => {
@@ -114,5 +141,17 @@ describe("CompaniesService", () => {
       data: { name: "Acme Media Labs" },
     });
     expect(result.name).toBe("Acme Media Labs");
+  });
+
+  it("deletes a company for the owner", async () => {
+    prisma.company.findUnique.mockResolvedValue({
+      id: "company-1",
+      ownerId: "user-1",
+    });
+    prisma.company.delete.mockResolvedValue({ id: "company-1" });
+
+    await service.remove("company-1", { userId: "user-1", role: "customer" });
+
+    expect(prisma.company.delete).toHaveBeenCalledWith({ where: { id: "company-1" } });
   });
 });

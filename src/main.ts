@@ -3,6 +3,7 @@ import { AppModule } from "./app.module";
 import { ValidationPipe, BadRequestException } from "@nestjs/common";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { ContextService } from "./common/context/context.service";
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -58,6 +59,15 @@ async function bootstrap() {
   app.useGlobalFilters(
     new AllExceptionsFilter(httpAdapterHost, contextService),
   );
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle("Surge Platform API")
+    .setDescription("Surge Platform backend API documentation")
+    .setVersion("2.0")
+    .addBearerAuth()
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup("docs", app, swaggerDocument);
   // Note: We are instantiating it here instead of using APP_FILTER
   // because the filter *depends* on other providers (HttpAdapterHost)
   // that are only available *after* the app is created.

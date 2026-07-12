@@ -127,3 +127,14 @@
 * [x] **Future Channel Extensibility:** ফিউচারে কাস্টমারের ডিমান্ড অনুযায়ী X (Twitter), Instagram বা Threads-এর অফিশিয়াল SDK মাত্র ১টি ফাইলে এক্সটেন্ড করার সুবিধা রাখা।
 
 ---
+
+## 🟩 Module 8: Human Review & Manual Publishing System [STATUS: 100% COMPLETE]
+
+* [x] **Auto-Post Mode Toggle:** `PATCH /workspaces/:workspaceId/queue-config` এ `autoPost` যোগ করা হয়েছে, যাতে workspace-level review mode এবং direct publish mode switch করা যায়।
+* [x] **Review-First Draft Lifecycle:** `GeneratedDraft` এখন `draft`, `review`, `approved`, `scheduled`, `published`, `rejected`, `failed`, `deleted`, `auto_dispatch` lifecycle সাপোর্ট করে এবং `editorState`-এ title / excerpt / slug / hashtags / SEO metadata রাখা হয়।
+* [x] **Manual Review APIs:** generated draft list, details, edit, approve, reject এবং soft-delete flow চালু করা হয়েছে JWT-authenticated workspace access control সহ।
+* [x] **Publish Now & Schedule Publish:** immediate publish এবং scheduled publish endpoints যোগ হয়েছে, যেখানে selected publishing channels resolve হয়ে DispatcherService boundary দিয়ে dispatch হয়।
+* [x] **Permissions & Audit Log:** owner/admin/member workspace checks, manage-draft permission guard, এবং `SystemLog`-এ create/edit/publish/schedule/review audit trail রেকর্ড করা হয়।
+* [x] **Swagger, Postman & Tests:** Swagger docs bootstrap করা হয়েছে, Postman collection-এ Module 8 flow যোগ করা হয়েছে, এবং generated-drafts service/controller unit tests green করা হয়েছে।
+
+---

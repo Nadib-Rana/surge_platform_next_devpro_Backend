@@ -7,7 +7,10 @@ describe("RawPostsService", () => {
   beforeEach(() => {
     prisma = {
       workspace: {
-        findUnique: jest.fn().mockResolvedValue({ id: "workspace-1" }),
+        findUnique: jest.fn().mockResolvedValue({ id: "workspace-1", company: { ownerId: "user-1" } }),
+      },
+      workspaceMember: {
+        findFirst: jest.fn().mockResolvedValue(null),
       },
       rawPostsBuffer: {
         findMany: jest.fn().mockResolvedValue([{ id: "post-1" }]),
@@ -18,10 +21,14 @@ describe("RawPostsService", () => {
   });
 
   it("returns buffered posts for the requested historical window", async () => {
-    const result = await service.findBufferedPosts("workspace-1", "7");
+    const result = await service.findBufferedPosts("workspace-1", "7", {
+      userId: "user-1",
+      role: "customer",
+    });
 
     expect(prisma.workspace.findUnique).toHaveBeenCalledWith({
       where: { id: "workspace-1" },
+      include: { company: true },
     });
     expect(prisma.rawPostsBuffer.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -33,5 +40,14 @@ describe("RawPostsService", () => {
       }),
     );
     expect(result).toEqual([{ id: "post-1" }]);
+  });
+
+  it("rejects access for users who do not own or belong to the workspace", async () => {
+    await expect(
+      service.findBufferedPosts("workspace-1", "7", {
+        userId: "user-2",
+        role: "customer",
+      }),
+    ).rejects.toThrow("You can only view buffered posts from workspaces you own or belong to");
   });
 });

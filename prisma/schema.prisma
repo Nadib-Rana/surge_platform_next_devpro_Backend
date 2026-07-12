@@ -236,10 +236,11 @@ model GeneratedDraft {
   socialPlainText      String?       @db.Text @map("social_plain_text")
   imageUrl             String?       @map("image_url")
   imageProvider        String?       @map("image_provider") // openai, midjourney, ideogram
+  editorState          Json?         @map("editor_state") // title, excerpt, slug, hashtags, seo metadata, etc.
 
   // Scheduling & Campaign Type
   generationType       String        @default("auto_cron") @map("generation_type") // auto_cron, manual_on_demand, batch_digest
-  status               String        @default("pending") @map("status") // pending, approved, rejected, scheduled, auto_dispatch
+  status               String        @default("pending") @map("status") // draft, review, approved, scheduled, published, rejected, failed, deleted, auto_dispatch
   scheduledAt          DateTime?     @map("scheduled_at") // ফিউচার অটো-পোস্ট টাইম
   createdAt            DateTime      @default(now()) @map("created_at")
 

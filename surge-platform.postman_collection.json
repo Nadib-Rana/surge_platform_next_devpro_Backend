@@ -341,11 +341,15 @@
                   {
                     "key": "Content-Type",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
                   }
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{}"
+                  "raw": "{\n  \"name\": \"Acme Media Labs\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/companies",
@@ -428,10 +432,15 @@
               }
             },
             {
-              "name": "Delete Company",
+              "name": "Get Company By ID",
               "request": {
-                "method": "DELETE",
-                "header": [],
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
                 "url": {
                   "raw": "{{baseUrl}}/companies/{{companyId}}",
                   "host": [
@@ -440,6 +449,182 @@
                   "path": [
                     "companies",
                     "{{companyId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update Company",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Acme Media Labs Updated\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/companies/{{companyId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "companies",
+                    "{{companyId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Delete Company",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/companies/{{companyId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "companies",
+                    "{{companyId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Create Workspace",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Operations\",\n  \"companyId\": \"{{companyId}}\",\n  \"timezone\": \"UTC\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Workspaces",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Workspace By ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update Workspace",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Operations Updated\",\n  \"timezone\": \"America/New_York\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Delete Workspace",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}"
                   ]
                 }
               }
@@ -504,6 +689,62 @@
                     "workspaces",
                     "{{workspaceId}}",
                     "rss-sources"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get RSS Source By ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "rss-sources",
+                    "{{sourceId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update RSS Source",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"feedUrl\": \"https://example.com/feed.xml\",\n  \"description\": \"Updated feed description\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "rss-sources",
+                    "{{sourceId}}"
                   ]
                 }
               }
@@ -811,6 +1052,86 @@
                       "key": "days",
                       "value": "3"
                     }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Buffered Post By ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "buffer-posts",
+                    "{{bufferPostId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Update Buffered Post",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"buffered\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "buffer-posts",
+                    "{{bufferPostId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Delete Buffered Post",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "buffer-posts",
+                    "{{bufferPostId}}"
                   ]
                 }
               }
@@ -1298,7 +1619,7 @@
                     "{{generatedDraftId}}"
                   ]
                 },
-                "description": "Updates a draft into an Autopilot-eligible state. Keep imageProvider aligned with the asset pipeline output; fallback PNGs still use imageProvider=openai because the OpenAI image generation boundary triggered the fallback."
+                "description": "Updates one generated_draft. Admins can patch any draft; non-admin users can patch only drafts in workspaces they can access."
               }
             },
             {
@@ -1462,6 +1783,378 @@
                     "{{workspaceId}}",
                     "dispatcher",
                     "publish"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Publish Dispatch - LinkedIn",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"channel\": \"linkedin\",\n  \"title\": \"AI Daily Digest: LinkedIn Edition\",\n  \"content\": \"Automated LinkedIn post content goes here.\",\n  \"images\": [\"https://images.example.com/linkedin-cover.jpg\"],\n  \"credentials\": {\n    \"accessToken\": \"linkedin_token_here\",\n    \"target\": \"urn:li:person:xxxx\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "dispatcher",
+                    "publish"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Publish Dispatch - Facebook",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"channel\": \"facebook\",\n  \"title\": \"AI Daily Digest: Facebook Edition\",\n  \"content\": \"Automated Facebook post content goes here.\",\n  \"images\": [\"https://images.example.com/facebook-cover.jpg\"],\n  \"credentials\": {\n    \"accessToken\": \"facebook_token_here\",\n    \"target\": \"1234567890\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "dispatcher",
+                    "publish"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Module 8: Human Review & Manual Publishing System",
+      "item": [
+        {
+          "name": "Workspace Review Mode",
+          "item": [
+            {
+              "name": "Update Queue Config With Auto-Post Mode",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"],\n  \"autoPost\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "queue-config"
+                  ]
+                },
+                "description": "Turns the workspace into review-first mode. Set autoPost=true to skip review and let the generated draft flow publish automatically after creation."
+              }
+            },
+            {
+              "name": "Enable Auto-Post",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"autoPost\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/auto-post",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "auto-post"
+                  ]
+                },
+                "description": "Enable auto-posting for the workspace so new generated drafts can bypass review and publish automatically."
+              }
+            },
+            {
+              "name": "Disable Auto-Post",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"autoPost\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/auto-post",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "auto-post"
+                  ]
+                },
+                "description": "Disable auto-posting to keep generated drafts in review-first mode."
+              }
+            },
+            {
+              "name": "Create Review Draft",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"socialPlainText\": \"Draft content for human review.\",\n  \"wordpressHtmlContent\": \"<p>Draft body for WordPress review mode.</p>\",\n  \"title\": \"Review draft for Module 8\",\n  \"hashtags\": [\"surge\", \"review\"],\n  \"status\": \"review\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "List Generated Drafts",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts?workspaceId={{workspaceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts"
+                  ],
+                  "query": [
+                    {
+                      "key": "workspaceId",
+                      "value": "{{workspaceId}}"
+                    }
+                  ]
+                }
+              },
+              "description": "Admins can call this without workspaceId to see all generated_drafts; workspace users can pass workspaceId to scope the list to an accessible workspace."
+            },
+            {
+              "name": "Get Generated Draft",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts",
+                    "{{generatedDraftId}}"
+                  ]
+                }
+              },
+              "description": "Returns one generated_draft by id. Admins can read any draft; workspace users can read drafts they own or can access through their workspace membership."
+            },
+            {
+              "name": "Approve Generated Draft",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"approve\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts",
+                    "{{generatedDraftId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reject Generated Draft",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"reject\",\n  \"status\": \"rejected\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts",
+                    "{{generatedDraftId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Publish Draft Now",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"channels\": [\"wordpress\", \"linkedin\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts",
+                    "{{generatedDraftId}}",
+                    "publish"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Schedule Draft Publish",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"scheduledAt\": \"2026-07-15T09:00:00.000Z\",\n  \"channels\": [\"wordpress\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/schedule",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "generated-drafts",
+                    "{{generatedDraftId}}",
+                    "schedule"
                   ]
                 }
               }

@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
 } from "@nestjs/common";
+import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { CompaniesService } from "./companies.service";
 import { CreateCompanyDto } from "./dto/create-company.dto";
@@ -22,18 +23,29 @@ interface AuthenticatedUser {
   role: string;
 }
 
+@ApiTags("companies")
 @Controller("companies")
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Post()
-  create(@Body() createCompanyDto: CreateCompanyDto) {
-    return this.companiesService.create(createCompanyDto);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Create a company" })
+  @ApiBody({ type: CreateCompanyDto })
+  @ApiResponse({ status: 201, description: "Company created successfully" })
+  create(
+    @Body() createCompanyDto: CreateCompanyDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.companiesService.create(createCompanyDto, user);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin", "customer")
+  @ApiOperation({ summary: "List companies" })
+  @ApiResponse({ status: 200, description: "Companies returned successfully" })
   findAll(@GetUser() user: AuthenticatedUser) {
     return this.companiesService.findAll(user);
   }
@@ -41,6 +53,9 @@ export class CompaniesController {
   @Get(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin", "customer")
+  @ApiOperation({ summary: "Get a company by id" })
+  @ApiParam({ name: "id", description: "Company id" })
+  @ApiResponse({ status: 200, description: "Company returned successfully" })
   findOne(@Param("id") id: string, @GetUser() user: AuthenticatedUser) {
     return this.companiesService.findOne(id, user);
   }
@@ -48,6 +63,10 @@ export class CompaniesController {
   @Patch(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin", "customer")
+  @ApiOperation({ summary: "Update a company" })
+  @ApiParam({ name: "id", description: "Company id" })
+  @ApiBody({ type: UpdateCompanyDto })
+  @ApiResponse({ status: 200, description: "Company updated successfully" })
   update(
     @Param("id") id: string,
     @Body() updateCompanyDto: UpdateCompanyDto,
@@ -57,7 +76,12 @@ export class CompaniesController {
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.companiesService.remove(+id);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Delete a company" })
+  @ApiParam({ name: "id", description: "Company id" })
+  @ApiResponse({ status: 200, description: "Company deleted successfully" })
+  remove(@Param("id") id: string, @GetUser() user: AuthenticatedUser) {
+    return this.companiesService.remove(id, user);
   }
 }

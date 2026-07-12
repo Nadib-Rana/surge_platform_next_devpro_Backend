@@ -6,9 +6,14 @@ import {
   IsArray,
   ArrayNotEmpty,
   IsString,
+  IsBoolean,
 } from "class-validator";
 
 export class QueueConfigDto {
+  @IsOptional()
+  @IsBoolean()
+  autoPost?: boolean;
+
   @IsOptional()
   @IsNumber()
   @Min(1)

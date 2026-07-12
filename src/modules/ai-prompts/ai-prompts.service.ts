@@ -15,6 +15,7 @@ import { Prisma } from "@prisma/client";
 import OpenAI from "openai";
 import { Anthropic } from "@anthropic-ai/sdk";
 import { type TextBlock } from "@anthropic-ai/sdk/resources/messages";
+import { GeneratedDraftsService } from "../generated-drafts/generated-drafts.service";
 
 interface AuthenticatedUser {
   userId: string;
@@ -43,6 +44,7 @@ export class AiPromptsService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly aiAssetService: AiAssetService,
+    private readonly generatedDraftsService: GeneratedDraftsService,
   ) {
     const openAiKey = this.configService.get<string>("OPENAI_API_KEY");
     this.openai = openAiKey ? new OpenAI({ apiKey: openAiKey }) : null;
@@ -382,12 +384,16 @@ export class AiPromptsService {
         socialPlainText: generatedContent.socialPlainText,
         imageUrl: asset.imageUrl,
         imageProvider: asset.provider,
-        status: "pending",
+        status: "review",
       },
     });
 
+    const finalDraft = await this.generatedDraftsService.applyAutoPostPolicy(
+      draft.id,
+    );
+
     return {
-      draft,
+      draft: finalDraft,
       digestText: generatedContent.socialPlainText,
       asset,
     };

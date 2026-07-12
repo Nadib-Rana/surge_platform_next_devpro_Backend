@@ -187,7 +187,7 @@ export class RegistrationService {
               name: "Default Workspace",
               timezone: "UTC",
               queueConfig: {
-                fetchFrequencyHours: 6,
+                fetchFrequencyHours: 24,
                 postingTimes: ["09:00"],
               },
             },
