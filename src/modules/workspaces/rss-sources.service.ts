@@ -104,11 +104,7 @@ export class RssSourcesService {
     return feed;
   }
 
-  async update(
-    workspaceId: string,
-    sourceId: string,
-    dto: UpdateRssSourceDto,
-  ) {
+  async update(workspaceId: string, sourceId: string, dto: UpdateRssSourceDto) {
     await this.getWorkspaceAndCompanyOwner(workspaceId);
 
     const feed = await this.prisma.rssFeed.findFirst({

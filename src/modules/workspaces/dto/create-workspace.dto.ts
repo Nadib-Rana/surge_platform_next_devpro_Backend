@@ -7,7 +7,10 @@ export class CreateWorkspaceDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: "11111111-1111-1111-1111-111111111111", description: "Parent company id" })
+  @ApiProperty({
+    example: "11111111-1111-1111-1111-111111111111",
+    description: "Parent company id",
+  })
   @IsString()
   @IsNotEmpty()
   companyId: string;

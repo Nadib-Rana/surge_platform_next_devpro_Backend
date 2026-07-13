@@ -22,7 +22,10 @@ interface QueueConfig {
 export class WorkspacesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createWorkspaceDto: CreateWorkspaceDto, user: AuthenticatedUser) {
+  async create(
+    createWorkspaceDto: CreateWorkspaceDto,
+    user: AuthenticatedUser,
+  ) {
     if (!createWorkspaceDto.name?.trim()) {
       throw new BadRequestException("Workspace name is required");
     }
@@ -37,7 +40,9 @@ export class WorkspacesService {
     }
 
     if (user.role !== "admin" && company.ownerId !== user.userId) {
-      throw new ForbiddenException("You can only create workspaces for your own company");
+      throw new ForbiddenException(
+        "You can only create workspaces for your own company",
+      );
     }
 
     const workspace = await this.prisma.workspace.create({
@@ -99,14 +104,20 @@ export class WorkspacesService {
         where: { workspaceId: id, userId: user.userId },
       });
       if (!isMember) {
-        throw new ForbiddenException("You can only view workspaces you belong to");
+        throw new ForbiddenException(
+          "You can only view workspaces you belong to",
+        );
       }
     }
 
     return workspace;
   }
 
-  async update(id: string, updateWorkspaceDto: Partial<CreateWorkspaceDto>, user: AuthenticatedUser) {
+  async update(
+    id: string,
+    updateWorkspaceDto: Partial<CreateWorkspaceDto>,
+    user: AuthenticatedUser,
+  ) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id },
       include: { company: true },
@@ -117,7 +128,9 @@ export class WorkspacesService {
     }
 
     if (user.role !== "admin" && workspace.company.ownerId !== user.userId) {
-      throw new ForbiddenException("You can only update workspaces in your own company");
+      throw new ForbiddenException(
+        "You can only update workspaces in your own company",
+      );
     }
 
     const data: Record<string, unknown> = {};
@@ -145,7 +158,9 @@ export class WorkspacesService {
     }
 
     if (user.role !== "admin" && workspace.company.ownerId !== user.userId) {
-      throw new ForbiddenException("You can only delete workspaces in your own company");
+      throw new ForbiddenException(
+        "You can only delete workspaces in your own company",
+      );
     }
 
     return this.prisma.workspace.delete({ where: { id } });

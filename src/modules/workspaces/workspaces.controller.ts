@@ -8,7 +8,13 @@ import {
   Delete,
   UseGuards,
 } from "@nestjs/common";
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 import { WorkspacesService } from "./workspaces.service";
 import { QueueConfigDto } from "./dto/queue-config.dto";
 import { AutoPostToggleDto } from "./dto/auto-post-toggle.dto";

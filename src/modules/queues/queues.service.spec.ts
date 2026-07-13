@@ -12,7 +12,24 @@ describe("QueuesService", () => {
     service = module.get<QueuesService>(QueuesService);
   });
 
-  it("should be defined", () => {
-    expect(service).toBeDefined();
+  it("should create and return a queue", async () => {
+    const created = await service.create({ name: "daily-sync" });
+
+    expect(created).toMatchObject({
+      id: expect.any(String),
+      name: "daily-sync",
+      status: "active",
+    });
+  });
+
+  it("should list, get, and delete queues", async () => {
+    const created = await service.create({ name: "weekly-report" });
+    const all = await service.findAll();
+    const one = await service.findOne(created.id);
+    const removed = await service.remove(created.id);
+
+    expect(all).toHaveLength(1);
+    expect(one.name).toBe("weekly-report");
+    expect(removed.id).toBe(created.id);
   });
 });

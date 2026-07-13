@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Param, Patch, Query, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { RawPostsService } from "./raw-posts.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -33,7 +41,11 @@ export class RawPostsBufferController {
     @Param("bufferPostId") bufferPostId: string,
     @GetUser() user?: AuthenticatedUser,
   ) {
-    return this.rawPostsService.findBufferedPostById(workspaceId, bufferPostId, user);
+    return this.rawPostsService.findBufferedPostById(
+      workspaceId,
+      bufferPostId,
+      user,
+    );
   }
 
   @Patch("buffer-posts/:bufferPostId")
@@ -44,7 +56,11 @@ export class RawPostsBufferController {
     @Param("bufferPostId") bufferPostId: string,
     @GetUser() user?: AuthenticatedUser,
   ) {
-    return this.rawPostsService.updateBufferedPost(workspaceId, bufferPostId, user);
+    return this.rawPostsService.updateBufferedPost(
+      workspaceId,
+      bufferPostId,
+      user,
+    );
   }
 
   @Delete("buffer-posts/:bufferPostId")
@@ -55,6 +71,10 @@ export class RawPostsBufferController {
     @Param("bufferPostId") bufferPostId: string,
     @GetUser() user?: AuthenticatedUser,
   ) {
-    return this.rawPostsService.deleteBufferedPost(workspaceId, bufferPostId, user);
+    return this.rawPostsService.deleteBufferedPost(
+      workspaceId,
+      bufferPostId,
+      user,
+    );
   }
 }

@@ -19,8 +19,14 @@ describe("WorkspacesController", () => {
       controllers: [WorkspacesController],
       providers: [
         { provide: WorkspacesService, useValue: workspacesService },
-        { provide: RssSchedulerService, useValue: { onWorkspaceConfigChange: jest.fn() } },
-        { provide: AutopilotSchedulerService, useValue: { syncWorkspaceSchedules: jest.fn() } },
+        {
+          provide: RssSchedulerService,
+          useValue: { onWorkspaceConfigChange: jest.fn() },
+        },
+        {
+          provide: AutopilotSchedulerService,
+          useValue: { syncWorkspaceSchedules: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -34,7 +40,10 @@ describe("WorkspacesController", () => {
   it("delegates workspace creation", async () => {
     workspacesService.create.mockResolvedValue({ id: "workspace-1" });
 
-    const result = await controller.create({ name: "Ops", companyId: "company-1" }, { userId: "user-1", role: "customer" });
+    const result = await controller.create(
+      { name: "Ops", companyId: "company-1" },
+      { userId: "user-1", role: "customer" },
+    );
 
     expect(workspacesService.create).toHaveBeenCalledWith(
       { name: "Ops", companyId: "company-1" },

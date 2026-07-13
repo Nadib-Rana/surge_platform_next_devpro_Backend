@@ -152,6 +152,8 @@ describe("CompaniesService", () => {
 
     await service.remove("company-1", { userId: "user-1", role: "customer" });
 
-    expect(prisma.company.delete).toHaveBeenCalledWith({ where: { id: "company-1" } });
+    expect(prisma.company.delete).toHaveBeenCalledWith({
+      where: { id: "company-1" },
+    });
   });
 });

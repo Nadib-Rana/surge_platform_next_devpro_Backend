@@ -27,16 +27,16 @@ export class QueuesController {
 
   @Get(":id")
   findOne(@Param("id") id: string) {
-    return this.queuesService.findOne(+id);
+    return this.queuesService.findOne(id);
   }
 
   @Patch(":id")
   update(@Param("id") id: string, @Body() updateQueueDto: UpdateQueueDto) {
-    return this.queuesService.update(+id, updateQueueDto);
+    return this.queuesService.update(id, updateQueueDto);
   }
 
   @Delete(":id")
   remove(@Param("id") id: string) {
-    return this.queuesService.remove(+id);
+    return this.queuesService.remove(id);
   }
 }

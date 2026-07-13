@@ -54,8 +54,14 @@ describe("WorkspacesService", () => {
   });
 
   it("creates a workspace for an accessible company", async () => {
-    prisma.company.findUnique.mockResolvedValue({ id: "company-1", ownerId: "user-1" });
-    prisma.workspace.create.mockResolvedValue({ id: "workspace-1", name: "Ops" });
+    prisma.company.findUnique.mockResolvedValue({
+      id: "company-1",
+      ownerId: "user-1",
+    });
+    prisma.workspace.create.mockResolvedValue({
+      id: "workspace-1",
+      name: "Ops",
+    });
     prisma.workspaceMember.create.mockResolvedValue({});
 
     const result = await service.create(
@@ -79,7 +85,9 @@ describe("WorkspacesService", () => {
   });
 
   it("lists workspaces accessible to a customer", async () => {
-    prisma.workspace.findMany.mockResolvedValue([{ id: "workspace-1", name: "Ops" }]);
+    prisma.workspace.findMany.mockResolvedValue([
+      { id: "workspace-1", name: "Ops" },
+    ]);
 
     await service.findAll({ userId: "user-1", role: "customer" });
 
@@ -92,9 +100,16 @@ describe("WorkspacesService", () => {
       companyId: "company-1",
       company: { ownerId: "user-1" },
     });
-    prisma.workspace.update.mockResolvedValue({ id: "workspace-1", name: "Ops" });
+    prisma.workspace.update.mockResolvedValue({
+      id: "workspace-1",
+      name: "Ops",
+    });
 
-    await service.update("workspace-1", { name: "Ops" }, { userId: "user-1", role: "customer" });
+    await service.update(
+      "workspace-1",
+      { name: "Ops" },
+      { userId: "user-1", role: "customer" },
+    );
 
     expect(prisma.workspace.update).toHaveBeenCalledWith({
       where: { id: "workspace-1" },
@@ -112,6 +127,8 @@ describe("WorkspacesService", () => {
 
     await service.remove("workspace-1", { userId: "user-1", role: "customer" });
 
-    expect(prisma.workspace.delete).toHaveBeenCalledWith({ where: { id: "workspace-1" } });
+    expect(prisma.workspace.delete).toHaveBeenCalledWith({
+      where: { id: "workspace-1" },
+    });
   });
 });

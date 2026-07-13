@@ -928,7 +928,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{}"
+                  "raw": "{\n  \"name\": \"daily-sync\",\n  \"description\": \"Runs the daily sync workflow\",\n  \"status\": \"active\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/queues",
@@ -986,7 +986,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{}"
+                  "raw": "{\n  \"name\": \"daily-sync-updated\",\n  \"status\": \"inactive\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/queues/{{queueId}}",
