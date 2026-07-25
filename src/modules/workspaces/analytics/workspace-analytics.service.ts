@@ -8,14 +8,22 @@ export class WorkspaceAnalyticsService {
   async getWorkspaceAnalytics(workspaceId: string) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
-      include: { company: true },
+      include: {
+        company: {
+          include: {
+            owner: {
+              include: { subscription: true },
+            },
+          },
+        },
+      },
     });
 
     if (!workspace) {
       throw new NotFoundException(`Workspace ${workspaceId} not found`);
     }
 
-    const [drafts, rssCount, channelsCount, auditLogs] = await Promise.all([
+    const [drafts, rssCount, channelsCount, publishLogs] = await Promise.all([
       this.prisma.generatedDraft.findMany({
         where: { workspaceId },
         select: { status: true, createdAt: true },
@@ -26,10 +34,11 @@ export class WorkspaceAnalyticsService {
       this.prisma.publishingChannel.count({
         where: { workspaceId, isActive: true },
       }),
-      this.prisma.auditEvent.findMany({
-        where: { workspaceId },
+      this.prisma.publishedPostsLog.findMany({
+        where: { generatedDraft: { workspaceId } },
         orderBy: { createdAt: "desc" },
         take: 10,
+        include: { channel: true },
       }),
     ]);
 
@@ -45,7 +54,7 @@ export class WorkspaceAnalyticsService {
 
     return {
       workspaceId,
-      companyTier: workspace.company.subscriptionTier,
+      companyTier: workspace.company.owner.subscription?.tier ?? "starter",
       overview: {
         totalDrafts,
         published,
@@ -56,7 +65,7 @@ export class WorkspaceAnalyticsService {
         activeRssFeeds: rssCount,
         activeChannels: channelsCount,
       },
-      auditLogs,
+      auditLogs: publishLogs,
     };
   }
 }

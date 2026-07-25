@@ -18,22 +18,44 @@ export class StripeWebhookService {
       const tier = obj.metadata?.tier || "pro";
 
       if (companyId) {
-        await this.prisma.company.update({
+        const company = await this.prisma.company.findUnique({
           where: { id: companyId },
-          data: {
-            subscriptionTier: tier,
-          },
+          select: { ownerId: true },
         });
-        this.logger.log(`Upgraded company ${companyId} to tier ${tier}`);
+
+        if (company) {
+          await this.prisma.subscription.upsert({
+            where: { userId: company.ownerId },
+            update: { tier, status: "ACTIVE" },
+            create: {
+              userId: company.ownerId,
+              tier,
+              monthlyPostLimit: tier === "business" ? 1000 : 200,
+              status: "ACTIVE",
+            },
+          });
+          this.logger.log(
+            `Upgraded user ${company.ownerId} subscription to ${tier}`,
+          );
+        }
       }
     } else if (type === "customer.subscription.deleted") {
       const companyId = obj.metadata?.companyId;
       if (companyId) {
-        await this.prisma.company.update({
+        const company = await this.prisma.company.findUnique({
           where: { id: companyId },
-          data: { subscriptionTier: "starter" },
+          select: { ownerId: true },
         });
-        this.logger.log(`Downgraded company ${companyId} to starter tier`);
+
+        if (company) {
+          await this.prisma.subscription.update({
+            where: { userId: company.ownerId },
+            data: { tier: "starter", status: "CANCELED" },
+          });
+          this.logger.log(
+            `Downgraded user ${company.ownerId} subscription to starter`,
+          );
+        }
       }
     }
 
