@@ -47,8 +47,9 @@
 
 ## 🟩 Module 2: Dynamic RSS Ingestion Engine `[STATUS: 100% COMPLETE]`
 
-* [x] **Workspace RSS CRUD Controller:** `POST /workspaces/:workspaceId/rss-sources`, `GET /workspaces/:workspaceId/rss-sources`, `DELETE /workspaces/:workspaceId/rss-sources/:sourceId` এন্ডপয়েন্ট তৈরি করা হয়েছে — প্রতিটি ফিড `workspaceId` দিয়ে লিংক থাকে এবং `status` ফিল্ড দিয়ে soft-delete সমর্থন করা হয়।
-
+* [x] **Live Stripe Webhook Processor & Subscription Sync:** `StripeWebhookController` এবং `StripeWebhookService` তৈরি করা হয়েছে যা `POST /companies/billing/webhook` দিয়ে Stripe ইভেন্টসমূহ (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) রিসিভ করে স্বয়ংক্রিয়ভাবে কোম্পানির সাবস্ক্রিপশন টায়ার (`starter`, `pro`, `business`) আপডেট বা ডাউনগ্রেড করে।
+* [x] **Automated Quota Usage Enforcement Guard:** `subscription-tier.guard.ts` হেল্পার তৈরি করা হয়েছে যা কোম্পানির সাবস্ক্রিপশন প্ল্যান অনুযায়ী কোটা লিমিট (Starter: 5 RSS / 3 channels, Pro: 20 RSS / 10 channels, Business: 50 RSS / 25 channels) কড়াভাবে প্রয়োগ করে লিমিট অতিক্রম করলে `403 Forbidden` রিটার্ন করে।
+* [x] **Workspace Analytics & Audit Trail Controller:** `WorkspaceAnalyticsController` এবং `WorkspaceAnalyticsService` তৈরি করা হয়েছে যা `GET /workspaces/:workspaceId/analytics` এন্ডপয়েন্ট দিয়ে ড্রাফট জেনারেশন ও পাবলিকেশন সাকসেস রেট (%), প্ল্যাটফর্ম ওয়াইজ কন্টেন্ট ব্রেকডাউন এবং হিস্টোরিক্যাল অডিট লগস ট্রেইল প্রদান করে।
 * [x] **Subscription Tier Guard Rail:** ওয়ার্কস্পেসের কোম্পানি-ওনারের সাবস্ক্রিপশন টায়ার অনুযায়ী লিমিট চেক করা হয় (starter=5, pro=20, business=50) — লিমিট অতিক্রম করলে `403 Forbidden` রিটার্ন করে।
 
 * [x] **Customer-Controlled Fetch Frequency:** `PATCH /workspaces/:workspaceId/queue-config` এন্ডপয়েন্ট তৈরি করা হয়েছে; `queue_config` JSON-এ `{ fetchFrequencyHours, postingTimes }` সেভ হয় এবং ভ্যালিডেশন করা হয়।
@@ -65,6 +66,9 @@
 
 ## 🟩 Module 3: Smart Deduplication & Raw Posts Buffer `[STATUS: 100% COMPLETE]`
 
+* [x] **Canonical URL Normalization & Hash Guard:** `normalizeUrl(url)` যুক্ত করা হয়েছে যা ইউআরএল থেকে মার্কেটিং ট্র্যাকিং প্যারামিটার (`utm_*`, `fbclid`, `gclid`, `ref`), ট্রেইলিং স্ল্যাশ এবং হ্যাস ফ্র্যাগমেন্ট দূর করে ক্যানোনিক্যাল SHA-256 `url_hash` তৈরি করে — ফলে একই আর্টিকেলের ভিন্ন ট্র্যাকিং লিঙ্ক ডিডুপ্লিকেশনে স্কিপ হয়।
+* [x] **Full Article Extractor & HTML Sanitizer:** `rss-article-extractor.util.ts` যুক্ত করা হয়েছে যা র-আরএসএস এইচটিএমএল থেকে স্ক্রিপ্ট, স্টাইল, আইফ্রেম এবং এডস ব্লক স্ট্রিপ করে এআই ডায়জেস্ট জেনারেশনের জন্য ক্লিন ও রিডেবল কন্টেন্ট নিশ্চিত করে।
+* [x] **Soft Error Recovery Handler:** `RssProcessor`-এ নেটওয়ার্ক টাইমআউট, HTTP 404/503 বা ম্যালফর্মড এক্সএমএল ক্র্যাশ না করে গ্রেসফুলি ওয়ার্নিং লগ করে বুলএমকিউ ওয়ার্কার এক্সিকিউশন সচল রাখে।
 * [x] **Idempotent Scraper Middleware:** আরএসএস ফিড স্ক্র্যাপ করার সময় আর্টিকেলের মেইন ইউআরএল-কে SHA-256 হ্যাশ করে `url_hash` বের করা।
 * [x] **Database Unique Constraint Guard:** জেনারেট হওয়া `url_hash` ডাটাবেজের ইউনিক কলামের সাথে চেক করে ডুপ্লিকেট ডেটা হলে স্ক্র্যাপিং প্রসেস থেকে তাৎক্ষণিক স্কিপ করা।
 * [x] **Raw Post Buffer Storage:** নতুন ইউনিক আর্টিকেলগুলোকে `status: "buffered"` ফ্ল্যাগ দিয়ে ইনজেস্ট করা।
@@ -77,6 +81,8 @@
 
 ## 🟩 Module 4: AI Creative Engine & Asset Pipeline `[STATUS: 100% COMPLETE]`
 
+* [x] **Multi-Provider LLM Circuit Breaker Fallback:** `generateLlmCompletion` হেল্পারে OpenAI -> Anthropic -> Local Rule-based synthesizer রেজিলিয়েন্স সার্কিট ব্রেকার ক্যাসকেড যুক্ত করা হয়েছে। প্রাইমারি এলএলএম প্রোভাইডার (যেমন OpenAI gpt-4o) ডাউন বা রেট লিমিট থাকলে অটোমেটিকলি অ্যানথ্রোপিক ক্লড অথবা লোকাল সিন্থেসাইজারে সুইচ করে জেনারেশন পাইপলাইন ক্র্যাশ প্রতিরোধ করে।
+* [x] **Robust Structured JSON Output Parser:** `parseBatchDigestContent()` হেল্পারে Markdown codeblock wrappers (````json ... ````) এবং কন্ট্রোল ক্যারেক্টার ক্লিন করে `wordpressHtmlContent`, `socialPlainText`, `imagePrompt`, এবং `hashtags` স্ট্রাকচার্ড ফিল্ড প্রিসাইসলি পার্স করা সুনিশ্চিত করা হয়েছে।
 * [x] **Prompt Version Control Matrix:** `AiPrompt` এবং `PromptVersion` টেবিল ডিজাইন ও আর্কিটেকচার, যা এআই প্রম্পটের হিস্ট্রি এবং টোন ট্র্যাক রাখবে।
 * [x] **Strict Prompt Scope Architecture:** `PromptScope` (GLOBAL/WORKSPACE) এবং `createdById` ownership constraint দিয়ে prompt template access আলাদা করা হয়েছে। `GET /ai-prompts/global` শুধুমাত্র global template দেয়, `GET /ai-prompts/workspace` শুধুমাত্র logged-in user's own workspace template দেয়, এবং `GET /ai-prompts/:id` GLOBAL হলে allow করে কিন্তু অন্য tenant-এর WORKSPACE prompt হলে `404` দেয়।
 * [x] **Atomic Prompt Version Update:** `PATCH /ai-prompts/global/:id` admin-only এবং `PATCH /ai-prompts/workspace/:id` owner-only করা হয়েছে। `name` / `description` parent prompt table-এ আপডেট হয়, আর `systemPrompt` বা `tone` বদলালে Prisma `$transaction` দিয়ে পুরনো version inactive করে নতুন active `PromptVersion` তৈরি হয়।

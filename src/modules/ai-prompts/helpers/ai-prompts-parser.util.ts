@@ -1,21 +1,23 @@
 export interface BatchDigestContent {
   socialPlainText: string;
   wordpressHtmlContent: string;
+  imagePrompt?: string;
+  hashtags?: string[];
 }
 
 export function parseBatchDigestContent(
   rawContent: string,
 ): BatchDigestContent {
-  const trimmedContent = rawContent.trim();
-  const parsedJson = tryParseDigestJson(trimmedContent);
+  const cleanedContent = stripMarkdownFences(rawContent.trim());
+  const parsedJson = tryParseDigestJson(cleanedContent);
   if (parsedJson) {
     return parsedJson;
   }
 
-  const wordpressMatch = trimmedContent.match(
+  const wordpressMatch = cleanedContent.match(
     /(?:wordpressHtmlContent|wordpress_html_content|wordpress html|blog html)\s*[:=-]\s*([\s\S]*?)(?=\n\s*(?:socialPlainText|social_plain_text|social text|social)\s*[:=-]|$)/i,
   );
-  const socialMatch = trimmedContent.match(
+  const socialMatch = cleanedContent.match(
     /(?:socialPlainText|social_plain_text|social text|social)\s*[:=-]\s*([\s\S]*?)(?=\n\s*(?:wordpressHtmlContent|wordpress_html_content|wordpress html|blog html)\s*[:=-]|$)/i,
   );
 
@@ -24,7 +26,7 @@ export function parseBatchDigestContent(
 
   if (wordpressHtmlContent || socialPlainText) {
     const fallbackText = stripHtml(
-      wordpressHtmlContent ?? socialPlainText ?? trimmedContent,
+      wordpressHtmlContent ?? socialPlainText ?? cleanedContent,
     );
 
     return {
@@ -35,16 +37,25 @@ export function parseBatchDigestContent(
   }
 
   return {
-    wordpressHtmlContent: wrapPlainTextForWordPress(trimmedContent),
-    socialPlainText: trimmedContent,
+    wordpressHtmlContent: wrapPlainTextForWordPress(cleanedContent),
+    socialPlainText: cleanedContent,
   };
+}
+
+export function stripMarkdownFences(content: string): string {
+  if (!content) return "";
+  return content
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
 }
 
 export function tryParseDigestJson(
   rawContent: string,
 ): BatchDigestContent | null {
   try {
-    const parsed = JSON.parse(rawContent) as Partial<BatchDigestContent>;
+    const cleaned = stripMarkdownFences(rawContent);
+    const parsed = JSON.parse(cleaned) as Partial<BatchDigestContent>;
     if (
       typeof parsed.socialPlainText === "string" ||
       typeof parsed.wordpressHtmlContent === "string"
@@ -59,6 +70,8 @@ export function tryParseDigestJson(
       return {
         socialPlainText,
         wordpressHtmlContent,
+        imagePrompt: parsed.imagePrompt?.trim(),
+        hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
       };
     }
   } catch {

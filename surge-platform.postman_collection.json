@@ -510,6 +510,56 @@
               }
             },
             {
+              "name": "Stripe Webhook",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"checkout.session.completed\",\n  \"data\": {\n    \"object\": {\n      \"client_reference_id\": \"{{companyId}}\",\n      \"metadata\": {\n        \"tier\": \"pro\"\n      }\n    }\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/companies/billing/webhook",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "companies",
+                    "billing",
+                    "webhook"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Workspace Analytics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/analytics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "analytics"
+                  ]
+                }
+              }
+            },
+            {
               "name": "Delete Company",
               "request": {
                 "method": "DELETE",
