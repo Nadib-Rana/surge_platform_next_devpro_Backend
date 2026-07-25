@@ -1,0 +1,158 @@
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../../../common/context/prisma.service";
+import { CreateGeneratedDraftDto } from "../dto/create-generated-draft.dto";
+import { GeneratedDraftQueryDto } from "../dto/generated-draft-query.dto";
+import { UpdateGeneratedDraftDto } from "../dto/update-generated-draft.dto";
+import {
+  assertCanManageDraft,
+  assertWorkspaceReadable,
+  AuthenticatedUser,
+  buildDraftFilter,
+  findAccessibleDraft,
+} from "./generated-drafts-access.helper";
+import {
+  recordAuditEvent,
+  resolveUpdatedStatus,
+} from "./generated-drafts-dispatcher.helper";
+import {
+  buildEditorState,
+  mergeEditorState,
+  parseEditorState,
+} from "./generated-drafts-editor.util";
+
+export async function createDraft(
+  prisma: PrismaService,
+  createGeneratedDraftDto: CreateGeneratedDraftDto,
+  user?: AuthenticatedUser,
+) {
+  const input = createGeneratedDraftDto as any;
+  const workspace = await assertWorkspaceReadable(
+    prisma,
+    input.workspaceId,
+    user,
+  );
+
+  const draft = await prisma.generatedDraft.create({
+    data: {
+      workspaceId: input.workspaceId,
+      rawPostId: input.rawPostId ?? null,
+      promptVersionId: input.promptVersionId,
+      wordpressHtmlContent: input.wordpressHtmlContent ?? null,
+      socialPlainText: input.socialPlainText ?? null,
+      imageUrl: input.imageUrl ?? null,
+      imageProvider: input.imageProvider ?? null,
+      generationType: input.generationType ?? "manual_on_demand",
+      status: input.status ?? "draft",
+      scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : null,
+      editorState: buildEditorState({
+        title: input.title,
+        hashtags: input.hashtags,
+      }) as Prisma.InputJsonValue,
+    },
+  });
+
+  await recordAuditEvent(prisma, {
+    workspaceId: workspace.id,
+    companyId: workspace.companyId,
+    draftId: draft.id,
+    userId: user?.userId ?? workspace.company.ownerId,
+    action: "Created",
+    status: draft.status,
+    details: { generationType: draft.generationType },
+  });
+
+  return draft;
+}
+
+export async function findAllDrafts(
+  prisma: PrismaService,
+  query: GeneratedDraftQueryDto,
+  user: AuthenticatedUser,
+) {
+  const where = buildDraftFilter(query, user);
+  return prisma.generatedDraft.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function updateDraft(
+  prisma: PrismaService,
+  id: string,
+  updateGeneratedDraftDto: UpdateGeneratedDraftDto,
+  user: AuthenticatedUser,
+) {
+  const input = updateGeneratedDraftDto as any;
+  const draft = await findAccessibleDraft(prisma, id, user);
+  assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
+
+  const currentEditorState = parseEditorState(draft.editorState);
+  const nextEditorState = mergeEditorState(currentEditorState, input);
+  const hasContentChanges =
+    input.wordpressHtmlContent !== undefined ||
+    input.socialPlainText !== undefined ||
+    input.imageUrl !== undefined ||
+    input.imageProvider !== undefined ||
+    input.title !== undefined ||
+    input.excerpt !== undefined ||
+    input.slug !== undefined ||
+    input.hashtags !== undefined ||
+    input.seoTitle !== undefined ||
+    input.metaDescription !== undefined;
+
+  const nextStatus = resolveUpdatedStatus(
+    draft.status,
+    updateGeneratedDraftDto,
+    hasContentChanges,
+  );
+
+  const updated = await prisma.generatedDraft.update({
+    where: { id },
+    data: {
+      wordpressHtmlContent:
+        input.wordpressHtmlContent ?? draft.wordpressHtmlContent,
+      socialPlainText: input.socialPlainText ?? draft.socialPlainText,
+      imageUrl: input.imageUrl ?? draft.imageUrl,
+      imageProvider: input.imageProvider ?? draft.imageProvider,
+      editorState: nextEditorState as Prisma.InputJsonValue,
+      status: nextStatus,
+    },
+  });
+
+  await recordAuditEvent(prisma, {
+    workspaceId: draft.workspaceId,
+    companyId: draft.workspace.companyId,
+    draftId: draft.id,
+    userId: user.userId,
+    action: "Edited",
+    status: updated.status,
+    details: { editorState: nextEditorState },
+  });
+
+  return updated;
+}
+
+export async function removeDraft(
+  prisma: PrismaService,
+  id: string,
+  user: AuthenticatedUser,
+) {
+  const draft = await findAccessibleDraft(prisma, id, user);
+  assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
+
+  const updated = await prisma.generatedDraft.update({
+    where: { id },
+    data: { status: "deleted" },
+  });
+
+  await recordAuditEvent(prisma, {
+    workspaceId: draft.workspaceId,
+    companyId: draft.workspace.companyId,
+    draftId: draft.id,
+    userId: user.userId,
+    action: "Deleted",
+    status: updated.status,
+  });
+
+  return updated;
+}

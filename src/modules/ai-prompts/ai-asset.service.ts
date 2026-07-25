@@ -24,6 +24,9 @@ export class AiAssetService {
   }) {
     const apiKey = this.configService.get<string>("OPENAI_API_KEY");
     if (!apiKey) {
+      this.logger.error(
+        `Image generation cannot start: OPENAI_API_KEY is not configured (workspaceId=${dto.workspaceId})`,
+      );
       throw new InternalServerErrorException(
         "OPENAI_API_KEY is not configured",
       );
@@ -31,12 +34,20 @@ export class AiAssetService {
 
     let buffer: Buffer;
     let usedFallback = false;
+    const model = "dall-e-3";
+
+    this.logger.log(
+      `Image generation started (workspaceId=${dto.workspaceId}, model=${model})`,
+    );
 
     try {
       const client = new OpenAI({ apiKey });
 
+      this.logger.log(
+        `Sending image generation request to OpenAI (workspaceId=${dto.workspaceId}, model=${model})`,
+      );
       const imageResponse = await client.images.generate({
-        model: "dall-e-3",
+        model,
         prompt: `Create a vivid social media hero image for the following digest. Keep it polished, brand-safe, and visually rich: ${dto.digestText}`,
         size: "1024x1024",
         quality: "standard",
@@ -50,21 +61,43 @@ export class AiAssetService {
         );
       }
 
+      this.logger.log(
+        `OpenAI image created; downloading generated asset (workspaceId=${dto.workspaceId}, model=${model})`,
+      );
       buffer = await this.downloadToBuffer(imageUrl);
+      this.logger.log(
+        `Generated image downloaded (workspaceId=${dto.workspaceId}, bytes=${buffer.length})`,
+      );
     } catch (error) {
       usedFallback = true;
       this.logger.warn(
-        `DALL-E image generation failed; uploading fallback PNG asset instead. ${this.formatError(error)}`,
+        `OpenAI image generation failed; using fallback PNG (workspaceId=${dto.workspaceId}, model=${model}, issue=${this.formatError(error)})`,
       );
       buffer = this.createFallbackPngBuffer();
     }
 
     const objectName = `workspaces/${dto.workspaceId}/assets/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
 
-    const presignedUrl = await this.storageService.uploadBuffer(
-      objectName,
-      buffer,
-      "image/png",
+    this.logger.log(
+      `Uploading image asset to storage (workspaceId=${dto.workspaceId}, objectName=${objectName}, fallback=${usedFallback})`,
+    );
+
+    let presignedUrl: string;
+    try {
+      presignedUrl = await this.storageService.uploadBuffer(
+        objectName,
+        buffer,
+        "image/png",
+      );
+    } catch (error) {
+      this.logger.error(
+        `Image asset upload failed (workspaceId=${dto.workspaceId}, objectName=${objectName}, issue=${this.formatError(error)})`,
+      );
+      throw error;
+    }
+
+    this.logger.log(
+      `Image asset process completed (workspaceId=${dto.workspaceId}, objectName=${objectName}, provider=${usedFallback ? "local-fallback" : "openai"}, fallback=${usedFallback})`,
     );
 
     return {
@@ -85,8 +118,27 @@ export class AiAssetService {
   }
 
   private formatError(error: unknown) {
-    if (error instanceof Error) {
-      return error.message;
+    if (error && typeof error === "object") {
+      const details = error as {
+        message?: unknown;
+        status?: unknown;
+        code?: unknown;
+        type?: unknown;
+        request_id?: unknown;
+      };
+      const parts = [
+        ["message", details.message],
+        ["status", details.status],
+        ["code", details.code],
+        ["type", details.type],
+        ["requestId", details.request_id],
+      ]
+        .filter((entry) => entry[1] !== undefined && entry[1] !== null)
+        .map(([key, value]) => `${key}=${String(value)}`);
+
+      if (parts.length) {
+        return parts.join(", ");
+      }
     }
 
     return String(error);

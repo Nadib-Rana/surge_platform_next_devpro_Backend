@@ -2,16 +2,16 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/context/prisma.service";
 import { CreateRssSourceDto } from "./dto/create-rss-source.dto";
 import { RssSchedulerService } from "./rss-scheduler.service";
+import {
+  NotFoundException,
+  BadRequestException,
+} from "../../common/exceptions/http.exceptions";
+import { checkRssSubscriptionLimit } from "./helpers/rss-sources-limit.helper";
 
 interface UpdateRssSourceDto {
   feedUrl?: string;
   status?: string;
 }
-import {
-  ForbiddenException,
-  NotFoundException,
-  BadRequestException,
-} from "../../common/exceptions/http.exceptions";
 
 @Injectable()
 export class RssSourcesService {
@@ -31,39 +31,11 @@ export class RssSourcesService {
     return { workspace, company: workspace.company };
   }
 
-  private async checkSubscriptionLimit(
-    companyOwnerId: string,
-    workspaceId: string,
-  ) {
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { userId: companyOwnerId },
-    });
-
-    const tier = (subscription?.tier || "starter").toLowerCase();
-    const limits: Record<string, number> = {
-      starter: 5,
-      pro: 20,
-      business: 50,
-    };
-    const limit = limits[tier] ?? 5;
-
-    const activeCount = await this.prisma.rssFeed.count({
-      where: { workspaceId, status: "active" },
-    });
-
-    if (activeCount >= limit) {
-      throw new ForbiddenException(
-        `Your subscription tier (${tier}) allows maximum ${limit} active RSS feeds.`,
-      );
-    }
-  }
-
   async create(workspaceId: string, dto: CreateRssSourceDto) {
-    const { workspace, company } =
+    const { company } =
       await this.getWorkspaceAndCompanyOwner(workspaceId);
 
-    // Check subscription limits
-    await this.checkSubscriptionLimit(company.ownerId, workspaceId);
+    await checkRssSubscriptionLimit(this.prisma, company.ownerId, workspaceId);
 
     const created = await this.prisma.rssFeed.create({
       data: {
@@ -73,7 +45,6 @@ export class RssSourcesService {
       },
     });
 
-    // Ensure scheduler registers job
     await this.scheduler.scheduleFeedJob(
       workspaceId,
       created.id,
@@ -84,7 +55,7 @@ export class RssSourcesService {
   }
 
   async list(workspaceId: string) {
-    await this.getWorkspaceAndCompanyOwner(workspaceId); // validate existence
+    await this.getWorkspaceAndCompanyOwner(workspaceId);
     return this.prisma.rssFeed.findMany({
       where: { workspaceId, status: "active" },
     });
@@ -137,17 +108,14 @@ export class RssSourcesService {
       throw new NotFoundException("RSS feed not found");
 
     if (force) {
-      // hard delete
       await this.prisma.rssFeed.delete({ where: { id: sourceId } });
     } else {
-      // soft delete: set status to 'inactive'
       await this.prisma.rssFeed.update({
         where: { id: sourceId },
         data: { status: "inactive" },
       });
     }
 
-    // remove scheduler job
     await this.scheduler.removeFeedJob(workspaceId, sourceId);
 
     return { id: sourceId, deleted: true };

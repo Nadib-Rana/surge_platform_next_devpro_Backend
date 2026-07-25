@@ -1,22 +1,15 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/context/prisma.service";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto";
-
-interface AuthenticatedUser {
-  userId: string;
-  role: string;
-}
-
-interface QueueConfig {
-  autoPost?: boolean;
-  fetchFrequencyHours?: number;
-  postingTimes?: string[];
-}
+import {
+  mergeQueueConfig,
+  QueueConfig,
+} from "./helpers/workspace-config.util";
+import {
+  assertCompanyOwnerOrAdmin,
+  assertWorkspaceAccess,
+  AuthenticatedUser,
+} from "./helpers/workspace-auth.util";
 
 @Injectable()
 export class WorkspacesService {
@@ -30,20 +23,11 @@ export class WorkspacesService {
       throw new BadRequestException("Workspace name is required");
     }
 
-    const company = await this.prisma.company.findUnique({
-      where: { id: createWorkspaceDto.companyId },
-      select: { id: true, ownerId: true },
-    });
-
-    if (!company) {
-      throw new NotFoundException("Company not found");
-    }
-
-    if (user.role !== "admin" && company.ownerId !== user.userId) {
-      throw new ForbiddenException(
-        "You can only create workspaces for your own company",
-      );
-    }
+    await assertCompanyOwnerOrAdmin(
+      this.prisma,
+      createWorkspaceDto.companyId,
+      user,
+    );
 
     const workspace = await this.prisma.workspace.create({
       data: {
@@ -90,27 +74,7 @@ export class WorkspacesService {
   }
 
   async findOne(id: string, user: AuthenticatedUser) {
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id },
-      include: { company: true },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException(`Workspace ${id} not found`);
-    }
-
-    if (user.role !== "admin" && workspace.company.ownerId !== user.userId) {
-      const isMember = await this.prisma.workspaceMember.findFirst({
-        where: { workspaceId: id, userId: user.userId },
-      });
-      if (!isMember) {
-        throw new ForbiddenException(
-          "You can only view workspaces you belong to",
-        );
-      }
-    }
-
-    return workspace;
+    return assertWorkspaceAccess(this.prisma, id, user, "view");
   }
 
   async update(
@@ -118,20 +82,7 @@ export class WorkspacesService {
     updateWorkspaceDto: Partial<CreateWorkspaceDto>,
     user: AuthenticatedUser,
   ) {
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id },
-      include: { company: true },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException(`Workspace ${id} not found`);
-    }
-
-    if (user.role !== "admin" && workspace.company.ownerId !== user.userId) {
-      throw new ForbiddenException(
-        "You can only update workspaces in your own company",
-      );
-    }
+    await assertWorkspaceAccess(this.prisma, id, user, "update");
 
     const data: Record<string, unknown> = {};
     if (updateWorkspaceDto.name) {
@@ -148,21 +99,7 @@ export class WorkspacesService {
   }
 
   async remove(id: string, user: AuthenticatedUser) {
-    const workspace = await this.prisma.workspace.findUnique({
-      where: { id },
-      include: { company: true },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException(`Workspace ${id} not found`);
-    }
-
-    if (user.role !== "admin" && workspace.company.ownerId !== user.userId) {
-      throw new ForbiddenException(
-        "You can only delete workspaces in your own company",
-      );
-    }
-
+    await assertWorkspaceAccess(this.prisma, id, user, "delete");
     return this.prisma.workspace.delete({ where: { id } });
   }
 
@@ -172,17 +109,14 @@ export class WorkspacesService {
     });
     if (!ws) throw new Error("Workspace not found");
 
-    const currentConfig = (ws.queueConfig as QueueConfig | null) ?? {};
-    const mergedConfig: QueueConfig = {
-      ...currentConfig,
-      ...config,
-      autoPost: config.autoPost ?? currentConfig.autoPost ?? false,
-    };
+    const mergedConfig = mergeQueueConfig(
+      ws.queueConfig as QueueConfig | null,
+      config,
+    );
 
-    const updated = await this.prisma.workspace.update({
+    return this.prisma.workspace.update({
       where: { id: workspaceId },
       data: { queueConfig: mergedConfig as any },
     });
-    return updated;
   }
 }

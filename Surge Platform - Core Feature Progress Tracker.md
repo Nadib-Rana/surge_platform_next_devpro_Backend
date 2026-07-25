@@ -97,7 +97,7 @@
 
 ## 🟩 Module 5 & 6: Autopilot Scheduler & Retries [STATUS: 100% COMPLETE]
 
-* [x] **Autopilot Engine Sync:** কাস্টমার ড্যাশবোর্ড থেকে সিলেক্ট করা ডেইলি পোস্টিং শিডিউল (যেমন: প্রতিদিন সকাল ৯টা ও বিকাল ৫টা) `queue_config (Json)` থেকে রিড করা এবং BullMQ টাইম-ব্যাজড repeatable jobs হিসেবে সিঙ্ক করা।
+* [x] **Module 5 & 6: Autopilot Scheduler & Retries :** কাস্টমার ড্যাশবোর্ড থেকে সিলেক্ট করা ডেইলি পোস্টিং শিডিউল (যেমন: প্রতিদিন সকাল ৯টা ও বিকাল ৫টা) `queue_config (Json)` থেকে রিড করা এবং BullMQ টাইম-ব্যাজড repeatable jobs হিসেবে সিঙ্ক করা।
 
 
 * [x] **Draft-Targeted Dispatch Selection:** BullMQ job payload-এ `draftId` থাকলে worker এখন সেই নির্দিষ্ট `GeneratedDraft`-কেই publish candidate হিসেবে resolve করে। ফলে একই workspace-এ একাধিক approved/scheduled draft থাকলেও latest draft accidentally pick হওয়ার risk নেই।
