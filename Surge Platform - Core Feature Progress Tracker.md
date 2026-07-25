@@ -120,6 +120,7 @@
 
 ## 🟩 Module 7: Pluggable Omni-Channel Dispatcher [STATUS: 100% COMPLETE]
 
+* [x] **AES-256-GCM Credential Encryption at Rest:** `PublishingChannel.encryptedCredentials` কলামে ওঅথ টোকেন এবং এপিআই ক্রেডেনশিয়াল নিরাপত্তার জন্য AES-256-GCM এনক্রিপশন যুক্ত করা হয়েছে। এতে প্রতিটি এনক্রিপশনে ইউনিক ১২-বাইটের random IV, ১৬-বাইটের GCM Auth Tag সংমিশ্রণে `enc:v1:<iv>:<tag>:<ciphertext>` ফরম্যাটে ডাটাবেজে এনক্রিপ্টেড ডাটা সেভ হয়। লেগ্যাসি প্লেইনট্যাক্সট রেকর্ডের জন্য অটো-ডিক্রিপশন এবং মাইগ্রেশন সমর্থিত।
 * [x] **Generic Core Dispatcher Architecture:** একটি বেস বা ইন্টারফেস সার্ভিস ডিজাইন করা, যাতে ডাটাবেজ স্কিমা টাচ না করেই যেকোনো নতুন ওমনি-চ্যানেল এপিআই প্লাগ-ইন করা যায়।
 * [x] **WordPress Rest API Engine:** কাস্টমারের নিজস্ব ওয়ার্ডপ্রেস ব্লগে ফরম্যাটেড কন্টেন্ট ও ফিচারড ইমেজ অটো-পাবলিশিং।
 * [x] **LinkedIn Graph API Engine:** কাস্টমারের পার্সোনাল প্রোফাইল বা কোম্পানির অফিসিয়াল পেজে কন্টেন্ট ডিসপ্যাচ।

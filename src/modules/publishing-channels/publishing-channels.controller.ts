@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from "@nestjs/common";
 import { PublishingChannelsService } from "./publishing-channels.service";
 import { CreatePublishingChannelDto } from "./dto/create-publishing-channel.dto";
@@ -23,13 +24,13 @@ export class PublishingChannelsController {
   }
 
   @Get()
-  findAll() {
-    return this.publishingChannelsService.findAll();
+  findAll(@Query("workspaceId") workspaceId?: string) {
+    return this.publishingChannelsService.findAll(workspaceId);
   }
 
   @Get(":id")
   findOne(@Param("id") id: string) {
-    return this.publishingChannelsService.findOne(+id);
+    return this.publishingChannelsService.findOne(id);
   }
 
   @Patch(":id")
@@ -38,13 +39,13 @@ export class PublishingChannelsController {
     @Body() updatePublishingChannelDto: UpdatePublishingChannelDto,
   ) {
     return this.publishingChannelsService.update(
-      +id,
+      id,
       updatePublishingChannelDto,
     );
   }
 
   @Delete(":id")
   remove(@Param("id") id: string) {
-    return this.publishingChannelsService.remove(+id);
+    return this.publishingChannelsService.remove(id);
   }
 }

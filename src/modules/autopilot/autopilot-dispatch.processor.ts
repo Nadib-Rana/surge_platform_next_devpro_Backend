@@ -6,6 +6,7 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../common/context/prisma.service";
 import { DispatcherService } from "../dispatcher/dispatcher.service";
 import { DispatchResult } from "../dispatcher/interfaces/base-dispatcher.interface";
+import { EncryptionService } from "../../common/security/encryption.service";
 import {
   acquireAutopilotLock,
   releaseAutopilotLock,
@@ -35,6 +36,7 @@ export class AutopilotDispatchProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly dispatcher: DispatcherService,
+    private readonly encryptionService: EncryptionService,
     @InjectQueue("FailedPostsQueue") private readonly failedPostsQueue: Queue,
   ) {
     super();
@@ -109,6 +111,7 @@ export class AutopilotDispatchProcessor extends WorkerHost {
       channel,
       draft,
       this.logger,
+      this.encryptionService,
     );
     return this.dispatcher.dispatch(payload);
   }

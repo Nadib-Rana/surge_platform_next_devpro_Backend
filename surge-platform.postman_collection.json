@@ -1661,7 +1661,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{}"
+                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"platform\": \"wordpress\",\n  \"credentials\": {\n    \"endpoint\": \"https://example-blog.com/wp-json\",\n    \"username\": \"admin\",\n    \"password\": \"app-password-secret\"\n  },\n  \"isActive\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/publishing-channels",
@@ -1680,12 +1680,18 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/publishing-channels",
+                  "raw": "{{baseUrl}}/publishing-channels?workspaceId={{workspaceId}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "publishing-channels"
+                  ],
+                  "query": [
+                    {
+                      "key": "workspaceId",
+                      "value": "{{workspaceId}}"
+                    }
                   ]
                 }
               }
@@ -1719,7 +1725,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{}"
+                  "raw": "{\n  \"platform\": \"wordpress\",\n  \"credentials\": {\n    \"endpoint\": \"https://example-blog.com/wp-json\",\n    \"username\": \"admin\",\n    \"password\": \"updated-secret-password\"\n  },\n  \"isActive\": true\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",

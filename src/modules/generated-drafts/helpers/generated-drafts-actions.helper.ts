@@ -12,13 +12,14 @@ import {
 import {
   dispatchDraftToChannels,
   recordAuditEvent,
-  resolvePublishingChannels,
 } from "./generated-drafts-dispatcher.helper";
+import { resolvePublishingChannels } from "./generated-drafts-channel-resolver.helper";
 import {
   getManualScheduleJobId,
   getManualScheduleJobName,
   removeExistingManualScheduleJobs,
 } from "./generated-drafts-scheduler.helper";
+import { EncryptionService } from "../../../common/security/encryption.service";
 
 export async function publishDraftAction(
   prisma: PrismaService,
@@ -26,6 +27,7 @@ export async function publishDraftAction(
   id: string,
   user: AuthenticatedUser,
   dto: PublishGeneratedDraftDto = {},
+  encryptionService?: EncryptionService,
 ) {
   const draft = await findAccessibleDraft(prisma, id, user);
   assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
@@ -40,6 +42,8 @@ export async function publishDraftAction(
     dispatcher,
     draft,
     channels,
+    user.userId,
+    encryptionService,
   );
   const nextStatus = result.successes.length > 0 ? "published" : "failed";
 

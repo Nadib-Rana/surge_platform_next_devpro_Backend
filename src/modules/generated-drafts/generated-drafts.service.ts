@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { Queue } from "bullmq";
 import { PrismaService } from "../../common/context/prisma.service";
 import { DispatcherService } from "../dispatcher/dispatcher.service";
+import { EncryptionService } from "../../common/security/encryption.service";
 import { CreateGeneratedDraftDto } from "./dto/create-generated-draft.dto";
 import { GeneratedDraftQueryDto } from "./dto/generated-draft-query.dto";
 import { PublishGeneratedDraftDto } from "./dto/publish-generated-draft.dto";
@@ -30,6 +31,7 @@ export class GeneratedDraftsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dispatcher: DispatcherService,
+    private readonly encryptionService: EncryptionService,
     @InjectQueue("autopilot-dispatch-queue")
     private readonly dispatchQueue: Queue,
   ) {}
@@ -69,7 +71,14 @@ export class GeneratedDraftsService {
     user: AuthenticatedUser,
     dto: PublishGeneratedDraftDto = {},
   ): Promise<any> {
-    return publishDraftAction(this.prisma, this.dispatcher, id, user, dto);
+    return publishDraftAction(
+      this.prisma,
+      this.dispatcher,
+      id,
+      user,
+      dto,
+      this.encryptionService,
+    );
   }
 
   async schedule(

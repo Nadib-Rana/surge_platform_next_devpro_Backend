@@ -1,5 +1,6 @@
 import { Logger } from "@nestjs/common";
 import { DispatchPayload } from "../../dispatcher/interfaces/base-dispatcher.interface";
+import { EncryptionService } from "../../../common/security/encryption.service";
 
 export interface DraftForDispatch {
   id: string;
@@ -21,6 +22,7 @@ export function buildAutopilotDispatchPayload(
   channel: ChannelForDispatch,
   draft: DraftForDispatch,
   logger: Logger,
+  encryptionService?: EncryptionService,
 ): DispatchPayload {
   const content = resolveContentForChannel(channel.platform, draft);
   if (!content) {
@@ -35,7 +37,7 @@ export function buildAutopilotDispatchPayload(
     title: "Surge Autopilot Digest",
     content,
     images,
-    credentials: parseChannelCredentials(channel, logger),
+    credentials: parseChannelCredentials(channel, logger, encryptionService),
     metadata: {
       draftId: draft.id,
       workspaceId: draft.workspaceId,
@@ -57,18 +59,23 @@ function resolveContentForChannel(
   return content?.trim() ?? "";
 }
 
-function parseChannelCredentials(
+export function parseChannelCredentials(
   channel: ChannelForDispatch,
   logger: Logger,
+  encryptionService?: EncryptionService,
 ): Record<string, any> {
+  if (!channel.encryptedCredentials) return {};
   try {
-    const parsed = JSON.parse(channel.encryptedCredentials) as unknown;
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, any>;
+    if (encryptionService) {
+      return encryptionService.decrypt(channel.encryptedCredentials);
+    }
+    const trimmed = channel.encryptedCredentials.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      return JSON.parse(trimmed) as Record<string, any>;
     }
   } catch {
     logger.warn(
-      `Publishing channel ${channel.id} credentials are not plain JSON; dispatcher will fail closed until credential decryption is wired.`,
+      `Failed to parse or decrypt credentials for publishing channel ${channel.id}`,
     );
   }
 

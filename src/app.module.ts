@@ -23,6 +23,7 @@ import { PublishingChannelsModule } from "./modules/publishing-channels/publishi
 import { QueuesModule } from "./modules/queues/queues.module";
 import { AutopilotModule } from "./modules/autopilot/autopilot.module";
 import { StorageModule } from "./modules/storage/storage.module";
+import { EncryptionModule } from "./common/security/encryption.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { StorageModule } from "./modules/storage/storage.module";
       isGlobal: true,
       envFilePath: ".env",
     }),
+    EncryptionModule,
     MailerModule.forRootAsync({
       useFactory: getMailConfig,
       inject: [ConfigService],

@@ -5,5 +5,6 @@ import { PublishingChannelsController } from "./publishing-channels.controller";
 @Module({
   controllers: [PublishingChannelsController],
   providers: [PublishingChannelsService],
+  exports: [PublishingChannelsService],
 })
 export class PublishingChannelsModule {}

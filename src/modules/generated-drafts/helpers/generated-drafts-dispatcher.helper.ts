@@ -1,63 +1,9 @@
-import { BadRequestException } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { DispatcherService } from "../../dispatcher/dispatcher.service";
-import { UpdateGeneratedDraftDto } from "../dto/update-generated-draft.dto";
 import { DraftRecord } from "./generated-drafts-access.helper";
-import {
-  parseEditorState,
-  parseJsonRecord,
-  stripHtml,
-} from "./generated-drafts-editor.util";
-
-export interface PublishingChannelRecord {
-  id: string;
-  workspaceId: string;
-  platform: string;
-  encryptedCredentials: string;
-}
-
-export async function resolvePublishingChannels(
-  prisma: PrismaService,
-  workspaceId: string,
-  requestedChannels?: string[],
-): Promise<PublishingChannelRecord[]> {
-  const where: Prisma.PublishingChannelWhereInput = {
-    workspaceId,
-    isActive: true,
-  };
-
-  if (requestedChannels?.length) {
-    where.platform = { in: requestedChannels };
-  }
-
-  const channels = (await prisma.publishingChannel.findMany({
-    where,
-  })) as PublishingChannelRecord[];
-
-  if (!channels.length) {
-    throw new BadRequestException(
-      "No active publishing channels found for this workspace",
-    );
-  }
-
-  if (requestedChannels?.length) {
-    const foundPlatforms = new Set(
-      channels.map((channel) => channel.platform),
-    );
-    const missing = requestedChannels.filter(
-      (channel) => !foundPlatforms.has(channel),
-    );
-
-    if (missing.length) {
-      throw new BadRequestException(
-        `Selected channels are not active or not configured: ${missing.join(", ")}`,
-      );
-    }
-  }
-
-  return channels;
-}
+import { parseEditorState, stripHtml } from "./generated-drafts-editor.util";
+import { EncryptionService } from "../../../common/security/encryption.service";
+import { PublishingChannelRecord } from "./generated-drafts-channel-resolver.helper";
 
 export async function dispatchDraftToChannels(
   prisma: PrismaService,
@@ -65,6 +11,7 @@ export async function dispatchDraftToChannels(
   draft: DraftRecord,
   channels: PublishingChannelRecord[],
   actorUserId = "system",
+  encryptionService?: EncryptionService,
 ) {
   const successes: Array<{ channel: string; url?: string; id?: string }> = [];
   const failures: Array<{ channel: string; error: string }> = [];
@@ -96,7 +43,7 @@ export async function dispatchDraftToChannels(
     }
 
     const dispatchResult = await dispatcher.dispatch(
-      buildDispatchPayload(draft, channel),
+      buildDispatchPayload(draft, channel, encryptionService),
     );
 
     if (dispatchResult.success) {
@@ -133,6 +80,7 @@ export async function dispatchDraftToChannels(
 export function buildDispatchPayload(
   draft: DraftRecord,
   channel: PublishingChannelRecord,
+  encryptionService?: EncryptionService,
 ) {
   const editorState = parseEditorState(draft.editorState);
   const title =
@@ -144,7 +92,7 @@ export function buildDispatchPayload(
     title,
     content,
     images: draft.imageUrl ? [draft.imageUrl] : undefined,
-    credentials: parseJsonRecord(channel.encryptedCredentials),
+    credentials: parseCredentials(channel.encryptedCredentials, encryptionService),
     metadata: {
       draftId: draft.id,
       workspaceId: draft.workspaceId,
@@ -152,6 +100,25 @@ export function buildDispatchPayload(
       editorState,
     },
   };
+}
+
+export function parseCredentials(
+  rawCredentials: string,
+  encryptionService?: EncryptionService,
+): Record<string, any> {
+  if (!rawCredentials) return {};
+  if (encryptionService) {
+    return encryptionService.decrypt(rawCredentials);
+  }
+  const trimmed = rawCredentials.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      return JSON.parse(trimmed) as Record<string, any>;
+    } catch {
+      return {};
+    }
+  }
+  return {};
 }
 
 export function resolveChannelContent(
@@ -172,34 +139,9 @@ export function resolveChannelContent(
   );
 }
 
-export function resolveUpdatedStatus(
-  currentStatus: string,
-  dto: UpdateGeneratedDraftDto,
-  hasContentChanges: boolean,
-) {
-  if (dto.action === "approve") return "approved";
-  if (dto.action === "reject") return "rejected";
-  if (dto.status) return dto.status;
-  if (
-    hasContentChanges &&
-    ["published", "failed", "rejected"].includes(currentStatus)
-  ) {
-    return "review";
-  }
-  return currentStatus;
-}
-
 export async function recordAuditEvent(
   prisma: PrismaService,
-  params: {
-    workspaceId: string;
-    companyId: string;
-    draftId: string;
-    userId: string;
-    action: string;
-    status: string;
-    details?: any;
-  },
+  params: any,
 ) {
   // Audit log helper hook
 }
