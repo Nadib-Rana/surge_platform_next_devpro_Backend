@@ -37,6 +37,8 @@
 * [x] **Auto-Provisioning Event:** ইউজার ওটিপি সাকসেসফুলি ভেরিফাই করার সাথে সাথেই ব্যাকএন্ড ইভেন্ট ফায়ার হয়ে অটোমেটিক ১টি `Company` এবং ১টি ডিফল্ট `Workspace` জেনারেট হওয়া।
 
 
+* [x] **IP Anti-Brute-Force Rate Limiting:** `/auth/login`, `/auth/verify-email`, `/auth/resend-otp`, `/auth/request-password-reset`, এবং `/auth/reset-password` এন্ডপয়েন্টে কাস্টম `RateLimiterGuard` ও `@Throttle(limit, ttlMs)` ডেকোরেটর প্রয়োগ করা হয়েছে যা আইপি ভিত্তিক ব্রুট-ফোর্স অ্যাটাক প্রতিরোধ করে `429 Too Many Requests` ফিল্টার করে।
+* [x] **Refresh Token Rotation & Session Revocation:** `RefreshTokenService` এবং `POST /auth/refresh` চালুর মাধ্যমে শর্ট-লাইভড `accessToken` এবং ৩-দিন/৩০-দিনের এনক্রিপ্টেড `refreshToken` মেকানিজম যুক্ত করা হয়েছে। ওটিপি/রিফ্রেশ টোকেন রোটেশন, `/auth/logout`-এ সেশন রিভোকেশন, এবং পাসওয়ার্ড পরিবর্তনের পর পুরনো টোকেন অটো-ইনভ্যালিড করার সুরক্ষা সম্পন্ন।
 * [x] **Workspace Isolation & RBAC:** কমপ্লিট মাল্টি-টেন্যান্সি আইসোলেশন এবং রোল-বেসড অ্যাক্সেস কন্ট্রোল (Owner, Admin, Member) এস্টাবলিশমেন্ট।
 
 
@@ -120,6 +122,9 @@
 
 ## 🟩 Module 7: Pluggable Omni-Channel Dispatcher [STATUS: 100% COMPLETE]
 
+* [x] **Automated OAuth 2.0 Authorization & Callback Engine:** `OAuthService` এবং `OAuthController` যুক্ত করা হয়েছে যা `GET /publishing-channels/oauth/:platform/authorize` এবং `GET /publishing-channels/oauth/:platform/callback` এন্ডপয়েন্ট দিয়ে LinkedIn, Facebook ও WordPress-এর জন্য অটোমেটিক ওঅথ কোড এক্সচেঞ্জ, পেজ/ইউজার ইউআরএন সোর্স রিট্রিভাল এবং AES-256-GCM এনক্রিপ্টেড ক্রেডেনশিয়াল সহ চ্যানেল রেজিস্টার করে।
+* [x] **OAuth Token Auto-Refresh Engine:** `refreshOAuthTokenIfNeeded()` হেল্পার যুক্ত করা হয়েছে যা ডিসপ্যাচ প্রসেসে HTTP 401 Unauthorized রিপ্লাই বা টোকেন মেয়াদের ক্ষেত্রে স্বয়ংক্রিয়ভাবে প্ল্যাটফর্মের `refresh_token` ব্যবহার করে নতুন `access_token` রিফ্রেশ করে প্রিজমা ডাটাবেজে স্টোর করে।
+* [x] **Pre-Dispatch Formatting & Character Limit Guard:** `DispatchFormatterUtil` যুক্ত করা হয়েছে যা সোশ্যাল মিডিয়া ডিসপ্যাচের পূর্বে পোস্ট কন্টেন্ট প্ল্যাটফর্ম অনুযায়ী সঠিক লিমিটে (LinkedIn: 3,000 chars, Facebook: 63,200 chars, Twitter/X: 280 chars) ক্লিনলি ট্রাঙ্কেট এবং HTML স্ট্রিপ নিশ্চিত করে।
 * [x] **AES-256-GCM Credential Encryption at Rest:** `PublishingChannel.encryptedCredentials` কলামে ওঅথ টোকেন এবং এপিআই ক্রেডেনশিয়াল নিরাপত্তার জন্য AES-256-GCM এনক্রিপশন যুক্ত করা হয়েছে। এতে প্রতিটি এনক্রিপশনে ইউনিক ১২-বাইটের random IV, ১৬-বাইটের GCM Auth Tag সংমিশ্রণে `enc:v1:<iv>:<tag>:<ciphertext>` ফরম্যাটে ডাটাবেজে এনক্রিপ্টেড ডাটা সেভ হয়। লেগ্যাসি প্লেইনট্যাক্সট রেকর্ডের জন্য অটো-ডিক্রিপশন এবং মাইগ্রেশন সমর্থিত।
 * [x] **Generic Core Dispatcher Architecture:** একটি বেস বা ইন্টারফেস সার্ভিস ডিজাইন করা, যাতে ডাটাবেজ স্কিমা টাচ না করেই যেকোনো নতুন ওমনি-চ্যানেল এপিআই প্লাগ-ইন করা যায়।
 * [x] **WordPress Rest API Engine:** কাস্টমারের নিজস্ব ওয়ার্ডপ্রেস ব্লগে ফরম্যাটেড কন্টেন্ট ও ফিচারড ইমেজ অটো-পাবলিশিং।

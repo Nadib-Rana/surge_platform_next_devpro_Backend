@@ -6,20 +6,22 @@ import { PrismaService } from "../../common/context/prisma.service";
 import * as bcrypt from "bcryptjs";
 import { JwtService } from "@nestjs/jwt";
 import { Injectable } from "@nestjs/common";
+import { RefreshTokenService } from "./refresh-token.service";
 
 @Injectable()
 export class LoginService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private refreshTokenService: RefreshTokenService,
   ) {}
 
-  // Login (accept email or phone as identifier;  bypass verification)
   async login(
     identifier: string | undefined,
     password: string,
   ): Promise<{
     accessToken: string;
+    refreshToken: string;
     isVerified: boolean;
     user: {
       id: string;
@@ -28,7 +30,6 @@ export class LoginService {
     };
   }> {
     if (!identifier) {
-      // কাস্টম BadRequestException (message, code)
       throw new BadRequestException(
         "Email or phone must be provided",
         "MISSING_IDENTIFIER",
@@ -41,29 +42,31 @@ export class LoginService {
       },
     });
 
-    // ১. ইউজার না থাকলে
-    if (!user)
+    if (!user) {
       throw new UnauthorizedException(
         "Invalid credentials",
         false,
         "INVALID_CREDENTIALS",
       );
+    }
 
-    // ৩. পাসওয়ার্ড চেক
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid)
+    if (!valid) {
       throw new UnauthorizedException(
         "Invalid credentials",
         user.isVerified,
         "INVALID_PASSWORD",
       );
+    }
 
     const payload = { sub: user.id, role: user.role };
-    const token = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken =
+      await this.refreshTokenService.generateRefreshToken(user.id);
 
-    // Success response
     return {
-      accessToken: token,
+      accessToken,
+      refreshToken,
       isVerified: user.isVerified,
       user: {
         id: user.id,

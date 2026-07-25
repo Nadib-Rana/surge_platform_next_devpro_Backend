@@ -4,8 +4,8 @@ import { findDraftWithWorkspace } from "./generated-drafts-access.helper";
 import {
   dispatchDraftToChannels,
   recordAuditEvent,
-  resolvePublishingChannels,
 } from "./generated-drafts-dispatcher.helper";
+import { resolvePublishingChannels } from "./generated-drafts-channel-resolver.helper";
 import { parseJsonRecord } from "./generated-drafts-editor.util";
 
 export async function applyAutoPostPolicyAction(

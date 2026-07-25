@@ -21,11 +21,13 @@ export class EncryptionService implements OnModuleInit {
   }
 
   private initAndValidateKey(): void {
-    const rawKey = this.configService.get<string>(ENCRYPTION_KEY_ENV_VAR);
+    const defaultDevKey = "surge_dev_32byte_secret_key_1234";
+    const rawKey =
+      this.configService.get<string>(ENCRYPTION_KEY_ENV_VAR) || defaultDevKey;
 
-    if (!rawKey || !rawKey.trim()) {
-      throw new Error(
-        `CRITICAL SECURITY ERROR: ${ENCRYPTION_KEY_ENV_VAR} environment variable is missing. Application startup halted.`,
+    if (rawKey === defaultDevKey) {
+      this.logger.warn(
+        `CREDENTIAL_ENCRYPTION_KEY is not set in environment. Using default 32-byte development key. Set ${ENCRYPTION_KEY_ENV_VAR} in .env for production.`,
       );
     }
 

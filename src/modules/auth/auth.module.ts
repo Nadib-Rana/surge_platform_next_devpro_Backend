@@ -4,6 +4,7 @@ import { AuthService } from "./auth.service";
 import { RegistrationService } from "./registration.service";
 import { LoginService } from "./login.service";
 import { PasswordResetService } from "./password-reset.service";
+import { RefreshTokenService } from "./refresh-token.service";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { ContextModule } from "../../common/context/context.module";
@@ -12,7 +13,6 @@ import { JwtStrategy } from "./jwt.strategy";
 import { jwtConstants } from "./constants";
 import { RolesGuard } from "./guards/roles.guard";
 import { MailModule } from "../../mail/mail.module";
-// import { Roles } from "./decorators/roles.decorator";
 
 @Module({
   imports: [
@@ -22,7 +22,6 @@ import { MailModule } from "../../mail/mail.module";
       useFactory: (configService: ConfigService) => {
         const secret = configService.get<string>("JWT_SECRET");
         if (!secret) {
-          // Fail fast in environments where a secret must be provided
           throw new Error(
             "JWT_SECRET environment variable is required for JwtModule configuration",
           );
@@ -46,9 +45,10 @@ import { MailModule } from "../../mail/mail.module";
     RegistrationService,
     LoginService,
     PasswordResetService,
+    RefreshTokenService,
     JwtStrategy,
     RolesGuard,
   ],
-  exports: [JwtStrategy, RolesGuard],
+  exports: [JwtStrategy, RolesGuard, RefreshTokenService],
 })
 export class AuthModule {}

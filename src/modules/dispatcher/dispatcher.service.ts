@@ -7,13 +7,14 @@ import {
 import { WordpressStrategy } from "./strategies/wordpress.strategy";
 import { LinkedinStrategy } from "./strategies/linkedin.strategy";
 import { FacebookStrategy } from "./strategies/facebook.strategy";
+import { formatPayloadForPlatform } from "./helpers/dispatch-formatter.util";
+import { refreshOAuthTokenIfNeeded } from "../publishing-channels/oauth/oauth-token-refresh.helper";
 
 @Injectable()
 export class DispatcherService {
   private strategies: BaseDispatcher[];
 
   constructor() {
-    // instantiate strategies explicitly to keep DI surface minimal and isolate SDKs
     this.strategies = [
       new WordpressStrategy(),
       new LinkedinStrategy(),
@@ -22,18 +23,37 @@ export class DispatcherService {
   }
 
   async dispatch(payload: DispatchPayload): Promise<DispatchResult> {
-    const channel = payload.channel;
+    const formattedPayload = formatPayloadForPlatform(payload);
+    const channel = formattedPayload.channel;
+
     const strategy = this.strategies.find((s) => s.handles(channel));
-    if (!strategy)
+    if (!strategy) {
       return {
         success: false,
         error: `No dispatcher configured for channel: ${channel}`,
       };
-    return strategy.dispatch(payload);
+    }
+
+    const result = await strategy.dispatch(formattedPayload);
+
+    if (!result.success && result.error?.includes("401")) {
+      const refreshedCreds = await refreshOAuthTokenIfNeeded(
+        channel,
+        formattedPayload.credentials,
+      );
+
+      if (refreshedCreds) {
+        return strategy.dispatch({
+          ...formattedPayload,
+          credentials: refreshedCreds,
+        });
+      }
+    }
+
+    return result;
   }
 
   registerStrategy(strategy: BaseDispatcher) {
-    // Allow runtime extension
     this.strategies.push(strategy);
   }
 }

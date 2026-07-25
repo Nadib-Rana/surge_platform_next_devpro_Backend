@@ -199,6 +199,32 @@
               }
             },
             {
+              "name": "Refresh Token",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh"
+                  ]
+                }
+              }
+            },
+            {
               "name": "Logout",
               "request": {
                 "method": "POST",
@@ -1649,6 +1675,60 @@
         {
           "name": "Publishing Channel Configuration",
           "item": [
+            {
+              "name": "Get OAuth Authorize URL",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/publishing-channels/oauth/linkedin/authorize?workspaceId={{workspaceId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "publishing-channels",
+                    "oauth",
+                    "linkedin",
+                    "authorize"
+                  ],
+                  "query": [
+                    {
+                      "key": "workspaceId",
+                      "value": "{{workspaceId}}"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "OAuth Callback",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/publishing-channels/oauth/linkedin/callback?code=sample_code&state=sample_state",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "publishing-channels",
+                    "oauth",
+                    "linkedin",
+                    "callback"
+                  ],
+                  "query": [
+                    {
+                      "key": "code",
+                      "value": "sample_code"
+                    },
+                    {
+                      "key": "state",
+                      "value": "sample_state"
+                    }
+                  ]
+                }
+              }
+            },
             {
               "name": "Create Publishing Channel",
               "request": {

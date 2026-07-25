@@ -10,10 +10,8 @@ import {
   buildDraftFilter,
   findAccessibleDraft,
 } from "./generated-drafts-access.helper";
-import {
-  recordAuditEvent,
-  resolveUpdatedStatus,
-} from "./generated-drafts-dispatcher.helper";
+import { recordAuditEvent } from "./generated-drafts-dispatcher.helper";
+import { resolveUpdatedStatus } from "./generated-drafts-channel-resolver.helper";
 import {
   buildEditorState,
   mergeEditorState,
@@ -22,15 +20,11 @@ import {
 
 export async function createDraft(
   prisma: PrismaService,
-  createGeneratedDraftDto: CreateGeneratedDraftDto,
+  dto: CreateGeneratedDraftDto,
   user?: AuthenticatedUser,
 ) {
-  const input = createGeneratedDraftDto as any;
-  const workspace = await assertWorkspaceReadable(
-    prisma,
-    input.workspaceId,
-    user,
-  );
+  const input = dto as any;
+  const workspace = await assertWorkspaceReadable(prisma, input.workspaceId, user);
 
   const draft = await prisma.generatedDraft.create({
     data: {
@@ -69,9 +63,8 @@ export async function findAllDrafts(
   query: GeneratedDraftQueryDto,
   user: AuthenticatedUser,
 ) {
-  const where = buildDraftFilter(query, user);
   return prisma.generatedDraft.findMany({
-    where,
+    where: buildDraftFilter(query, user),
     orderBy: { createdAt: "desc" },
   });
 }
@@ -79,10 +72,10 @@ export async function findAllDrafts(
 export async function updateDraft(
   prisma: PrismaService,
   id: string,
-  updateGeneratedDraftDto: UpdateGeneratedDraftDto,
+  dto: UpdateGeneratedDraftDto,
   user: AuthenticatedUser,
 ) {
-  const input = updateGeneratedDraftDto as any;
+  const input = dto as any;
   const draft = await findAccessibleDraft(prisma, id, user);
   assertCanManageDraft(draft.workspace.company.ownerId, user, draft.workspace.id);
 
@@ -92,25 +85,16 @@ export async function updateDraft(
     input.wordpressHtmlContent !== undefined ||
     input.socialPlainText !== undefined ||
     input.imageUrl !== undefined ||
-    input.imageProvider !== undefined ||
     input.title !== undefined ||
     input.excerpt !== undefined ||
-    input.slug !== undefined ||
-    input.hashtags !== undefined ||
-    input.seoTitle !== undefined ||
-    input.metaDescription !== undefined;
+    input.hashtags !== undefined;
 
-  const nextStatus = resolveUpdatedStatus(
-    draft.status,
-    updateGeneratedDraftDto,
-    hasContentChanges,
-  );
+  const nextStatus = resolveUpdatedStatus(draft.status, dto, hasContentChanges);
 
   const updated = await prisma.generatedDraft.update({
     where: { id },
     data: {
-      wordpressHtmlContent:
-        input.wordpressHtmlContent ?? draft.wordpressHtmlContent,
+      wordpressHtmlContent: input.wordpressHtmlContent ?? draft.wordpressHtmlContent,
       socialPlainText: input.socialPlainText ?? draft.socialPlainText,
       imageUrl: input.imageUrl ?? draft.imageUrl,
       imageProvider: input.imageProvider ?? draft.imageProvider,
