@@ -1,7 +1,1 @@
-export class Queue {
-  id: string;
-  name: string;
-  description?: string | null;
-  status: string;
-  createdAt: Date;
-}
+// This file is intentionally empty — old boilerplate entity removed during queues module refactoring.

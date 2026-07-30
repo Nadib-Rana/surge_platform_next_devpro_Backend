@@ -20,7 +20,7 @@ export class AiAssetService {
   async generateImageFromDigest(dto: {
     workspaceId: string;
     digestText: string;
-    promptVersionId: string;
+    toneProfileId?: string;
   }) {
     const apiKey = this.configService.get<string>("OPENAI_API_KEY");
     if (!apiKey) {

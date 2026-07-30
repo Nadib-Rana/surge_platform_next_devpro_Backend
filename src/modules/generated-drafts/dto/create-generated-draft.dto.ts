@@ -20,8 +20,9 @@ export class CreateGeneratedDraftDto {
   rawPostId?: string;
 
   @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  promptVersionId: string;
+  toneProfileId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -53,7 +54,7 @@ export class CreateGeneratedDraftDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  wordpressHtmlContent?: string;
+  blogPostContent?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

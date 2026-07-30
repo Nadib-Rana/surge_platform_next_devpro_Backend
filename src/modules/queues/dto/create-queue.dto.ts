@@ -1,15 +1,1 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
-
-export class CreateQueueDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsString()
-  status?: string;
-}
+// This file is intentionally empty — old boilerplate DTO removed during queues module refactoring.

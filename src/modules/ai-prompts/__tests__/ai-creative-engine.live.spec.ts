@@ -18,12 +18,11 @@ interface SeededGraph {
   workspaceId: string;
   rssFeedId: string;
   rawPostIds: string[];
-  aiPromptId: string;
-  promptVersionId: string;
+  toneProfileId: string;
 }
 
 interface GeneratedContent {
-  wordpressHtmlContent: string;
+  blogPostContent: string;
   socialPlainText: string;
 }
 
@@ -48,32 +47,54 @@ describeLive("AI Creative Engine live E2E integration", () => {
   beforeAll(async () => {
     try {
       await prisma.$connect();
-      await storage.verifyConnection();
-    } catch (error) {
-      skipReason =
-        error instanceof Error
-          ? error.message
-          : "Local Prisma or MinIO infrastructure is not reachable";
-      console.warn(`Skipping live AI creative suite: ${skipReason}`);
+    } catch (err: any) {
+      skipReason = `Prisma connection failed: ${err.message}`;
     }
   });
 
+  afterAll(async () => {
+    for (const graph of seeded) {
+      try {
+        await prisma.generatedDraft.deleteMany({
+          where: { workspaceId: graph.workspaceId },
+        });
+        await prisma.rawPostsBuffer.deleteMany({
+          where: { id: { in: graph.rawPostIds } },
+        });
+        await prisma.rssFeed.delete({
+          where: { id: graph.rssFeedId },
+        });
+        await prisma.workspace.delete({
+          where: { id: graph.workspaceId },
+        });
+        await prisma.company.delete({
+          where: { id: graph.companyId },
+        });
+        await prisma.user.delete({
+          where: { id: graph.userId },
+        });
+      } catch (cleanupErr) {
+        // Suppress cleanup failures in mock mode
+      }
+    }
+    await prisma.$disconnect();
+  });
+
   async function seedGraph(): Promise<SeededGraph> {
-    const suffix = randomUUID();
+    const suffix = `${seeded.length}-${randomUUID().slice(0, 6)}`;
     const user = await prisma.user.create({
       data: {
-        email: `${runId}-${suffix}@example.test`,
-        password: "not-used-in-live-ai-e2e-spec",
-        fullName: "Live AI E2E User",
-        isVerified: true,
+        email: `live-ai-e2e-${suffix}@surge-test.com`,
+        password: "secure-password-123",
+        fullName: `Live AI E2E Tester ${suffix}`,
+        role: "admin",
       },
     });
 
     const company = await prisma.company.create({
       data: {
-        ownerId: user.id,
-        name: `Live AI E2E Company ${suffix}`,
-        status: "active",
+        name: `Live AI E2E Corp ${suffix}`,
+        domain: `surge-live-test-${suffix}.com`,
       },
     });
 
@@ -92,49 +113,50 @@ describeLive("AI Creative Engine live E2E integration", () => {
       },
     });
 
-    const rawPosts = await prisma.rawPostsBuffer.createManyAndReturn({
-      data: [
-        {
+    const rawPosts = await Promise.all([
+      prisma.rawPostsBuffer.create({
+        data: {
           workspaceId: workspace.id,
           feedId: rssFeed.id,
-          urlHash: `${runId}-${suffix}-product-launch`,
-          title: "Local AI launch momentum accelerates",
+          urlHash: `${runId}-${suffix}-1`,
+          title: "Live E2E source article 1",
           rawContent:
-            "A startup released an AI-assisted publishing workflow focused on reliability, cost control, and multi-channel content reuse.",
+            "This is a live E2E article describing how technology accelerates development and testing pipelines.",
           publishedAt: new Date(),
           status: "buffered",
         },
-        {
+      }),
+      prisma.rawPostsBuffer.create({
+        data: {
           workspaceId: workspace.id,
           feedId: rssFeed.id,
-          urlHash: `${runId}-${suffix}-storage-pipeline`,
-          title: "Object storage pipelines improve media delivery",
+          urlHash: `${runId}-${suffix}-2`,
+          title: "Live E2E source article 2",
           rawContent:
-            "Teams are moving generated creative assets into S3-compatible object storage to improve secure delivery and lifecycle control.",
+            "Platform reliability increases dramatically when dependencies are fully integrated and mocked.",
           publishedAt: new Date(),
           status: "buffered",
         },
-      ],
-    });
+      }),
+    ]);
 
-    const aiPrompt = await prisma.aiPrompt.create({
-      data: {
-        scope: "WORKSPACE",
-        workspaceId: workspace.id,
-        createdById: user.id,
-        name: "Live AI creative prompt",
-        description: "Temporary prompt for live OpenAI E2E tests",
+    const toneProfile = await prisma.toneProfile.upsert({
+      where: { name: "professional" },
+      update: {},
+      create: {
+        name: "professional",
       },
     });
 
-    const promptVersion = await prisma.promptVersion.create({
-      data: {
-        promptId: aiPrompt.id,
-        versionTag: "v1",
-        systemPrompt:
-          "You are a precise multi-platform content editor. Return clear, production-ready copy.",
-        tone: "professional",
-        isActive: true,
+    // Make sure prompts exist
+    await prisma.stepOneRawDraftPrompt.upsert({
+      where: { toneProfileId: toneProfile.id },
+      update: {},
+      create: {
+        toneProfileId: toneProfile.id,
+        title: "Default Step 1 Prompt",
+        systemPrompt: "You are a precise multi-platform content editor.",
+        template: "Create a blog draft based on the context:\n{{articleContext}}",
       },
     });
 
@@ -144,32 +166,25 @@ describeLive("AI Creative Engine live E2E integration", () => {
       workspaceId: workspace.id,
       rssFeedId: rssFeed.id,
       rawPostIds: rawPosts.map((post) => post.id),
-      aiPromptId: aiPrompt.id,
-      promptVersionId: promptVersion.id,
+      toneProfileId: toneProfile.id,
     };
     seeded.push(graph);
     return graph;
   }
 
-  async function waitForAntiLockThrottle() {
-    const startedAt = Date.now();
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    return Date.now() - startedAt;
-  }
-
   function extractGeneratedContent(rawContent: string): GeneratedContent {
     const parsed = JSON.parse(rawContent) as Partial<GeneratedContent>;
     if (
-      !parsed.wordpressHtmlContent ||
+      !parsed.blogPostContent ||
       !parsed.socialPlainText ||
-      typeof parsed.wordpressHtmlContent !== "string" ||
+      typeof parsed.blogPostContent !== "string" ||
       typeof parsed.socialPlainText !== "string"
     ) {
       throw new Error("OpenAI response did not match expected content shape");
     }
 
     return {
-      wordpressHtmlContent: parsed.wordpressHtmlContent,
+      blogPostContent: parsed.blogPostContent,
       socialPlainText: parsed.socialPlainText,
     };
   }
@@ -223,12 +238,10 @@ describeLive("AI Creative Engine live E2E integration", () => {
     }
 
     const graph = await seedGraph();
-    const [promptVersion, rawPosts] = await Promise.all([
-      prisma.promptVersion.findFirstOrThrow({
-        where: {
-          promptId: graph.aiPromptId,
-          isActive: true,
-        },
+    const [toneProfile, rawPosts] = await Promise.all([
+      prisma.toneProfile.findUniqueOrThrow({
+        where: { id: graph.toneProfileId },
+        include: { stepOneRawDraftPrompt: true },
       }),
       prisma.rawPostsBuffer.findMany({
         where: {
@@ -245,6 +258,8 @@ describeLive("AI Creative Engine live E2E integration", () => {
       )
       .join("\n\n");
 
+    const systemPrompt = toneProfile.stepOneRawDraftPrompt?.systemPrompt ?? "You are a precise editor.";
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.6,
@@ -252,13 +267,13 @@ describeLive("AI Creative Engine live E2E integration", () => {
       messages: [
         {
           role: "system",
-          content: `${promptVersion.systemPrompt}\n\nTone: ${promptVersion.tone ?? "professional"}`,
+          content: `${systemPrompt}\n\nTone: ${toneProfile.name}`,
         },
         {
           role: "user",
           content:
-            "Create a JSON object with exactly two string fields: wordpressHtmlContent and socialPlainText. " +
-            "wordpressHtmlContent must be valid article HTML. socialPlainText must be concise and under 280 characters.\n\n" +
+            "Create a JSON object with exactly two string fields: blogPostContent and socialPlainText. " +
+            "blogPostContent must be valid article HTML. socialPlainText must be concise and under 280 characters.\n\n" +
             articleContext,
         },
       ],
@@ -268,7 +283,7 @@ describeLive("AI Creative Engine live E2E integration", () => {
     expect(rawContent).toBeTruthy();
 
     const generated = extractGeneratedContent(rawContent as string);
-    expect(generated.wordpressHtmlContent).toMatch(/<[^>]+>/);
+    expect(generated.blogPostContent).toMatch(/<[^>]+>/);
     expect(generated.socialPlainText.length).toBeGreaterThan(10);
     expect(generated.socialPlainText.length).toBeLessThanOrEqual(280);
 
@@ -279,8 +294,8 @@ describeLive("AI Creative Engine live E2E integration", () => {
       data: {
         workspaceId: graph.workspaceId,
         rawPostId: null,
-        promptVersionId: graph.promptVersionId,
-        wordpressHtmlContent: generated.wordpressHtmlContent,
+        toneProfileId: graph.toneProfileId,
+        blogPostContent: generated.blogPostContent,
         socialPlainText: generated.socialPlainText,
         generationType: "batch_digest",
         status: "pending",
@@ -290,7 +305,7 @@ describeLive("AI Creative Engine live E2E integration", () => {
     liveDraftId = draft.id;
     liveDigestText = generated.socialPlainText;
 
-    expect(draft.wordpressHtmlContent).toBe(generated.wordpressHtmlContent);
+    expect(draft.blogPostContent).toBe(generated.blogPostContent);
     expect(draft.socialPlainText).toBe(generated.socialPlainText);
     expect(draft.generationType).toBe("batch_digest");
     expect(draft.status).toBe("pending");
@@ -309,7 +324,7 @@ describeLive("AI Creative Engine live E2E integration", () => {
             data: {
               workspaceId: graph.workspaceId,
               rawPostId: null,
-              promptVersionId: graph.promptVersionId,
+              toneProfileId: graph.toneProfileId,
               socialPlainText: "Live digest placeholder for image generation.",
               generationType: "batch_digest",
               status: "pending",

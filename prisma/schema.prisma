@@ -21,10 +21,6 @@ enum TokenType {
   login_otp
 }
 
-enum PromptScope {
-  GLOBAL
-  WORKSPACE
-}
 
 // ==========================================
 // MODULE 1: USERS, WORKSPACES & BILLING
@@ -47,7 +43,6 @@ model User {
   subscription       Subscription?
   companies          Company[]
   workspaceMembers   WorkspaceMember[]
-  aiPrompts          AiPrompt[]
 
   @@map("users")
 }
@@ -125,7 +120,6 @@ model Workspace {
   members            WorkspaceMember[]
   rssFeeds           RssFeed[]
   rawPostsBuffer     RawPostsBuffer[]
-  aiPrompts          AiPrompt[]
   generatedDrafts    GeneratedDraft[]
   publishingChannels PublishingChannel[]
 
@@ -187,52 +181,17 @@ model RawPostsBuffer {
 // MODULE 4: AI PROMPTS & GENERATED DRAFTS
 // ==========================================
 
-model AiPrompt {
-  id          String      @id @default(uuid()) @db.Uuid
-  scope       PromptScope @default(WORKSPACE) @map("scope")
-  workspaceId String?     @map("workspace_id") @db.Uuid
-  workspace   Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdById String      @map("created_by_id") @db.Uuid
-  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  name        String      @map("name")
-  description String?     @map("description") @db.Text
-  createdAt   DateTime    @default(now()) @map("created_at")
-
-  // Relations
-  versions PromptVersion[]
-
-  @@index([scope, workspaceId])
-  @@map("ai_prompts")
-}
-
-model PromptVersion {
-  id                     String   @id @default(uuid()) @db.Uuid
-  promptId               String   @map("prompt_id") @db.Uuid
-  aiPrompt               AiPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  versionTag             String   @map("version_tag")
-  systemPrompt           String   @db.Text @map("system_prompt")
-  tone                   String?  @map("tone")
-  isActive               Boolean  @default(false) @map("is_active")
-  createdAt              DateTime @default(now()) @map("created_at")
-
-  // Relations
-  generatedDrafts GeneratedDraft[]
-
-  @@index([promptId, versionTag])
-  @@map("prompt_versions")
-}
-
 model GeneratedDraft {
   id                   String        @id @default(uuid()) @db.Uuid
   workspaceId          String        @map("workspace_id") @db.Uuid
   workspace            Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   rawPostId            String?       @map("raw_post_id") @db.Uuid // Batch Digest হলে Null থাকবে
   rawPost              RawPostsBuffer? @relation(fields: [rawPostId], references: [id], onDelete: SetNull)
-  promptVersionId      String        @map("prompt_version_id") @db.Uuid
-  promptVersion        PromptVersion @relation(fields: [promptVersionId], references: [id])
+  toneProfileId        String?       @map("tone_profile_id") @db.Uuid
+  toneProfile          ToneProfile?  @relation(fields: [toneProfileId], references: [id], onDelete: SetNull)
   
   // Content Distribution
-  wordpressHtmlContent String?       @db.Text @map("wordpress_html_content")
+  blogPostContent      String?       @db.Text @map("blog_post_content")
   socialPlainText      String?       @db.Text @map("social_plain_text")
   imageUrl             String?       @map("image_url")
   imageProvider        String?       @map("image_provider") // openai, midjourney, ideogram
@@ -247,6 +206,8 @@ model GeneratedDraft {
   // Relations
   publishedLogs PublishedPostsLog[]
 
+  @@index([workspaceId])
+  @@index([toneProfileId])
   @@map("generated_drafts")
 }
 
@@ -329,4 +290,59 @@ model SystemLog {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("system_logs")
+}
+
+model ToneProfile {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  name                   String                  @unique @map("name")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  stepOneRawDraftPrompt  StepOneRawDraftPrompt?
+  stepTwoPolishingPrompt StepTwoPolishingPrompt?
+  stepThreeImagePrompt   StepThreeImagePrompt?
+  generatedDrafts        GeneratedDraft[]
+
+  @@map("tone_profiles")
+}
+
+model StepOneRawDraftPrompt {
+  id            String      @id @default(uuid()) @db.Uuid
+  toneProfileId String      @unique @map("tone_profile_id") @db.Uuid
+  toneProfile   ToneProfile @relation(fields: [toneProfileId], references: [id], onDelete: Cascade)
+  title         String      @map("title")
+  systemPrompt  String      @db.Text @map("system_prompt")
+  template      String      @db.Text @map("template")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("step_one_raw_draft_prompts")
+}
+
+model StepTwoPolishingPrompt {
+  id            String      @id @default(uuid()) @db.Uuid
+  toneProfileId String      @unique @map("tone_profile_id") @db.Uuid
+  toneProfile   ToneProfile @relation(fields: [toneProfileId], references: [id], onDelete: Cascade)
+  title         String      @map("title")
+  systemPrompt  String      @db.Text @map("system_prompt")
+  template      String      @db.Text @map("template")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("step_two_polishing_prompts")
+}
+
+model StepThreeImagePrompt {
+  id            String      @id @default(uuid()) @db.Uuid
+  toneProfileId String      @unique @map("tone_profile_id") @db.Uuid
+  toneProfile   ToneProfile @relation(fields: [toneProfileId], references: [id], onDelete: Cascade)
+  title         String      @map("title")
+  systemPrompt  String      @db.Text @map("system_prompt")
+  template      String      @db.Text @map("template")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("step_three_image_prompts")
 }

@@ -1,118 +1,117 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import OpenAI from "openai";
 import { Anthropic } from "@anthropic-ai/sdk";
+import { ConfigService } from "@nestjs/config";
+import axios from "axios";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { GeneratedDraftsService } from "../../generated-drafts/generated-drafts.service";
 import { AiAssetService } from "../ai-asset.service";
 import { GenerateBatchDigestDto } from "../dto/generate-batch-digest.dto";
 import { generateLlmCompletion } from "./ai-prompts-llm.helper";
-import { parseBatchDigestContent, sleep } from "./ai-prompts-parser.util";
+import { stripMarkdownFences, sleep } from "./ai-prompts-parser.util";
 
-export async function executeBatchDigestGeneration(params: {
-  prisma: PrismaService;
-  aiAssetService: AiAssetService;
-  generatedDraftsService: GeneratedDraftsService;
-  openai: OpenAI | null;
-  anthropic: Anthropic | null;
-  dto: GenerateBatchDigestDto;
-}) {
-  const {
-    prisma,
-    aiAssetService,
-    generatedDraftsService,
-    openai,
-    anthropic,
-    dto,
-  } = params;
-
-  if (!dto.workspaceId) {
-    throw new BadRequestException("workspaceId is required");
-  }
-
-  const posts = await prisma.rawPostsBuffer.findMany({
-    where: {
-      workspaceId: dto.workspaceId,
-      status: "buffered",
-    },
-    orderBy: { publishedAt: "desc" },
-    take: dto.limit ?? 5,
-  });
-
-  if (!posts.length) {
-    throw new BadRequestException(
-      `No buffered posts found for workspace ${dto.workspaceId}`,
+export function interpolateTemplate(
+  template: string,
+  variables: Record<string, string>,
+): string {
+  if (!template) return "";
+  return template.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key) => {
+    const lowerKey = key.toLowerCase();
+    const foundKey = Object.keys(variables).find(
+      (k) => k.toLowerCase() === lowerKey,
     );
-  }
+    return foundKey ? variables[foundKey] : match;
+  });
+}
 
-  const promptVersion = dto.promptVersionId
-    ? await prisma.promptVersion.findUnique({
-        where: { id: dto.promptVersionId },
-        include: { aiPrompt: true },
-      })
-    : await prisma.promptVersion.findFirst({
-        where: {
-          isActive: true,
-          aiPrompt: {
-            OR: [{ scope: "GLOBAL" }, { workspaceId: dto.workspaceId }],
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        include: { aiPrompt: true },
-      });
-
-  if (!promptVersion) {
-    throw new NotFoundException(
-      "No active prompt version found for the workspace",
+export async function checkPerspectiveToxicity(
+  content: string,
+  apiKey: string | null,
+): Promise<void> {
+  if (!apiKey) {
+    // Basic local fallback safety check for toxicity if no API key is set
+    const toxicWords = ["abuse", "hate speech", "violence", "threat", "harass"];
+    const containsToxic = toxicWords.some((word) =>
+      content.toLowerCase().includes(word),
     );
+    if (containsToxic) {
+      throw new BadRequestException(
+        "Content failed safety checks (local check detects sensitive words)",
+      );
+    }
+    return;
   }
 
-  const articleContext = posts
-    .map(
-      (post, index) =>
-        `Article ${index + 1}: ${post.title}\n${post.rawContent}`,
-    )
-    .join("\n\n");
+  try {
+    const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${apiKey}`;
+    const response = await axios.post(url, {
+      comment: { text: content },
+      languages: ["en"],
+      requestedAttributes: { TOXICITY: {} },
+    });
 
-  const digestText = await generateLlmCompletion({
-    selectedModel: dto.model ?? "gpt-4o-mini",
-    systemPrompt: promptVersion.systemPrompt,
-    tone: promptVersion.tone ?? "professional",
-    articleContext,
-    openai,
-    anthropic,
-  });
+    const toxicityScore =
+      response.data?.attributeScores?.TOXICITY?.summaryScore?.value;
+    if (toxicityScore !== undefined && toxicityScore > 0.7) {
+      throw new BadRequestException(
+        `Content failed safety checks (Toxicity Score: ${toxicityScore})`,
+      );
+    }
+  } catch (error: any) {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    console.warn(`Perspective API validation request failed: ${error.message}`);
+  }
+}
 
-  const generatedContent = parseBatchDigestContent(digestText);
+function tryParseBlogJson(
+  content: string,
+): { blogPostContent: string; imagePrompt?: string } | null {
+  try {
+    const cleaned = stripMarkdownFences(content.trim());
+    const parsed = JSON.parse(cleaned);
+    if (typeof parsed.blogPostContent === "string") {
+      return {
+        blogPostContent: parsed.blogPostContent,
+        imagePrompt: parsed.imagePrompt,
+      };
+    }
+  } catch {}
+  return null;
+}
 
-  await sleep(3000);
+function tryParsePolishedJson(
+  content: string,
+): { blogPostContent: string; socialPlainText: string; hashtags?: string[] } | null {
+  try {
+    const cleaned = stripMarkdownFences(content.trim());
+    const parsed = JSON.parse(cleaned);
+    if (
+      typeof parsed.blogPostContent === "string" &&
+      typeof parsed.socialPlainText === "string"
+    ) {
+      return {
+        blogPostContent: parsed.blogPostContent,
+        socialPlainText: parsed.socialPlainText,
+        hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
+      };
+    }
+  } catch {}
+  return null;
+}
 
-  const asset = await aiAssetService.generateImageFromDigest({
-    workspaceId: dto.workspaceId,
-    digestText: generatedContent.socialPlainText,
-    promptVersionId: promptVersion.id,
-  });
-
-  const draft = await prisma.generatedDraft.create({
-    data: {
-      workspaceId: dto.workspaceId,
-      promptVersionId: promptVersion.id,
-      rawPostId: null,
-      generationType: "batch_digest",
-      wordpressHtmlContent: generatedContent.wordpressHtmlContent,
-      socialPlainText: generatedContent.socialPlainText,
-      imageUrl: asset.imageUrl,
-      imageProvider: asset.provider,
-      status: "review",
-    },
-  });
-
-  const finalDraft = await generatedDraftsService.applyAutoPostPolicy(
-    draft.id,
-  );
-
-  return {
-    draft: finalDraft,
-    digestText: generatedContent.socialPlainText,
-    asset,
-  };
+function tryParseImagePromptJson(
+  content: string,
+): { imagePrompt: string } | null {
+  try {
+    const cleaned = stripMarkdownFences(content.trim());
+    const parsed = JSON.parse(cleaned);
+    if (typeof parsed.imagePrompt === "string") {
+      return {
+        imagePrompt: parsed.imagePrompt,
+      };
+    }
+  } catch {}
+  return null;
 }

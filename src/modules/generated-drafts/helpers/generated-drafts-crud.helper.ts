@@ -30,8 +30,8 @@ export async function createDraft(
     data: {
       workspaceId: input.workspaceId,
       rawPostId: input.rawPostId ?? null,
-      promptVersionId: input.promptVersionId,
-      wordpressHtmlContent: input.wordpressHtmlContent ?? null,
+      toneProfileId: input.toneProfileId ?? null,
+      blogPostContent: input.blogPostContent ?? null,
       socialPlainText: input.socialPlainText ?? null,
       imageUrl: input.imageUrl ?? null,
       imageProvider: input.imageProvider ?? null,
@@ -82,7 +82,7 @@ export async function updateDraft(
   const currentEditorState = parseEditorState(draft.editorState);
   const nextEditorState = mergeEditorState(currentEditorState, input);
   const hasContentChanges =
-    input.wordpressHtmlContent !== undefined ||
+    input.blogPostContent !== undefined ||
     input.socialPlainText !== undefined ||
     input.imageUrl !== undefined ||
     input.title !== undefined ||
@@ -94,7 +94,7 @@ export async function updateDraft(
   const updated = await prisma.generatedDraft.update({
     where: { id },
     data: {
-      wordpressHtmlContent: input.wordpressHtmlContent ?? draft.wordpressHtmlContent,
+      blogPostContent: input.blogPostContent ?? draft.blogPostContent,
       socialPlainText: input.socialPlainText ?? draft.socialPlainText,
       imageUrl: input.imageUrl ?? draft.imageUrl,
       imageProvider: input.imageProvider ?? draft.imageProvider,

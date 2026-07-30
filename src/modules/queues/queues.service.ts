@@ -1,68 +1,54 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { CreateQueueDto } from "./dto/create-queue.dto";
-import { UpdateQueueDto } from "./dto/update-queue.dto";
-import { Queue } from "./entities/queue.entity";
+import { Queue } from "bullmq";
+import { InjectQueue } from "@nestjs/bullmq";
 
 @Injectable()
 export class QueuesService {
-  private readonly queues: Queue[] = [];
+  constructor(
+    @InjectQueue("content-generation-queue")
+    private readonly contentGenerationQueue: Queue,
+  ) {}
 
-  create(createQueueDto: CreateQueueDto) {
-    const queue: Queue = {
-      id: crypto.randomUUID(),
-      name: createQueueDto.name,
-      description: createQueueDto.description ?? null,
-      status: createQueueDto.status ?? "active",
-      createdAt: new Date(),
+  async getStats() {
+    const counts = await this.contentGenerationQueue.getJobCounts();
+    return {
+      "content-generation-queue": counts,
     };
-
-    this.queues.push(queue);
-    return queue;
   }
 
-  findAll() {
-    return this.queues
-      .slice()
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  async getFailedJobs() {
+    const jobs = await this.contentGenerationQueue.getFailed();
+    return jobs.map((job) => ({
+      id: job.id,
+      name: job.name,
+      data: job.data,
+      failedReason: job.failedReason,
+      stacktrace: job.stacktrace,
+      processedOn: job.processedOn ? new Date(job.processedOn) : null,
+      finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
+    }));
   }
 
-  findOne(id: string) {
-    const queue = this.queues.find((item) => item.id === id);
-
-    if (!queue) {
-      throw new NotFoundException(`Queue ${id} not found`);
+  async retryJob(jobId: string) {
+    const job = await this.contentGenerationQueue.getJob(jobId);
+    if (!job) {
+      throw new NotFoundException(`Job ${jobId} not found in content-generation-queue`);
     }
 
-    return queue;
-  }
-
-  update(id: string, updateQueueDto: UpdateQueueDto) {
-    const queue = this.queues.find((item) => item.id === id);
-
-    if (!queue) {
-      throw new NotFoundException(`Queue ${id} not found`);
+    const state = await job.getState();
+    if (state !== "failed") {
+      throw new Error(`Job ${jobId} is not in a failed state. Current state is: ${state}`);
     }
 
-    Object.assign(queue, {
-      ...updateQueueDto,
-      ...(updateQueueDto.name ? { name: updateQueueDto.name } : {}),
-      ...(updateQueueDto.description !== undefined
-        ? { description: updateQueueDto.description }
-        : {}),
-      ...(updateQueueDto.status ? { status: updateQueueDto.status } : {}),
-    });
-
-    return queue;
+    await job.retry();
+    return { message: `Job ${jobId} retried successfully` };
   }
 
-  remove(id: string) {
-    const index = this.queues.findIndex((item) => item.id === id);
-
-    if (index === -1) {
-      throw new NotFoundException(`Queue ${id} not found`);
-    }
-
-    const [removed] = this.queues.splice(index, 1);
-    return removed;
+  async cleanHistory() {
+    // Clean completed jobs older than 0ms (all)
+    await this.contentGenerationQueue.clean(0, 1000, "completed");
+    // Clean failed jobs older than 0ms (all)
+    await this.contentGenerationQueue.clean(0, 1000, "failed");
+    return { message: "Queue history cleaned successfully" };
   }
 }

@@ -24,6 +24,7 @@ import { QueuesModule } from "./modules/queues/queues.module";
 import { AutopilotModule } from "./modules/autopilot/autopilot.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { EncryptionModule } from "./common/security/encryption.module";
+import { ToneProfilesModule } from "./modules/tone-profiles/tone-profiles.module";
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { EncryptionModule } from "./common/security/encryption.module";
     QueuesModule,
     AutopilotModule,
     StorageModule,
+    ToneProfilesModule,
   ],
   controllers: [AppController, ApiTestController],
   providers: [

@@ -2,8 +2,9 @@
   "info": {
     "name": "Surge Platform API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.0.0",
-    "_postman_id": "9b6f6d2a-0000-4c2d-8888-abcdef123456"
+    "version": "3.0.0",
+    "_postman_id": "9b6f6d2a-0000-4c2d-8888-abcdef123456",
+    "description": "Complete API collection for the Surge Platform — a multi-tenant SaaS content automation engine. Covers auth, workspaces, RSS ingestion, AI creative pipeline, tone profiles, generated drafts, dispatcher, publishing channels, storage, and queue monitoring."
   },
   "variable": [
     {
@@ -12,6 +13,10 @@
     },
     {
       "key": "jwtToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
       "value": ""
     },
     {
@@ -27,12 +32,12 @@
       "value": "bbbbbbbb-1111-4ccc-8ddd-abcdef123456"
     },
     {
-      "key": "queueId",
-      "value": "33333333-cccc-4ddd-8eee-abcdef999999"
-    },
-    {
       "key": "sourceId",
       "value": "44444444-dddd-4eee-8fff-abcdef000000"
+    },
+    {
+      "key": "bufferPostId",
+      "value": "55555555-eeee-4fff-9aaa-abcdef111111"
     },
     {
       "key": "rawPostId",
@@ -47,16 +52,12 @@
       "value": "77777777-aaaa-4bbb-9ccc-abcdef333333"
     },
     {
-      "key": "rssFeedId",
-      "value": "88888888-bbbb-4ccc-9ddd-abcdef444444"
-    },
-    {
-      "key": "aiPromptId",
-      "value": "99999999-cccc-4ddd-9eee-abcdef555555"
-    },
-    {
-      "key": "promptVersionId",
+      "key": "toneProfileId",
       "value": "aaaaaaaa-dddd-4eee-9fff-abcdef666666"
+    },
+    {
+      "key": "failedJobId",
+      "value": "1"
     },
     {
       "key": "minioAssetUrl",
@@ -82,6 +83,24 @@
                   ],
                   "path": []
                 }
+              }
+            },
+            {
+              "name": "API Credentials Check",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api-test/credentials",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api-test",
+                    "credentials"
+                  ]
+                },
+                "description": "Returns health status of all external API credentials (OpenAI, Anthropic, Ideogram, Stripe, MinIO)."
               }
             }
           ]
@@ -112,7 +131,8 @@
                     "auth",
                     "register"
                   ]
-                }
+                },
+                "description": "Register a new user account. Rate limited to 5 requests per 60 seconds."
               }
             },
             {
@@ -138,7 +158,8 @@
                     "auth",
                     "verify-email"
                   ]
-                }
+                },
+                "description": "Verify email address using the OTP token sent during registration."
               }
             },
             {
@@ -164,7 +185,8 @@
                     "auth",
                     "resend-otp"
                   ]
-                }
+                },
+                "description": "Resend OTP verification email. Rate limited to 3 requests per 60 seconds."
               }
             }
           ]
@@ -195,8 +217,26 @@
                     "auth",
                     "login"
                   ]
+                },
+                "description": "Login with email or phone + password. Returns access and refresh tokens."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "if (json && json.data && json.data.accessToken) {",
+                      "  pm.collectionVariables.set('jwtToken', json.data.accessToken);",
+                      "}",
+                      "if (json && json.data && json.data.refreshToken) {",
+                      "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "}"
+                    ]
+                  }
                 }
-              }
+              ]
             },
             {
               "name": "Refresh Token",
@@ -221,8 +261,26 @@
                     "auth",
                     "refresh"
                   ]
+                },
+                "description": "Exchange a refresh token for a new access + refresh token pair."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const json = pm.response.json();",
+                      "if (json && json.data && json.data.accessToken) {",
+                      "  pm.collectionVariables.set('jwtToken', json.data.accessToken);",
+                      "}",
+                      "if (json && json.data && json.data.refreshToken) {",
+                      "  pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "}"
+                    ]
+                  }
                 }
-              }
+              ]
             },
             {
               "name": "Logout",
@@ -247,7 +305,8 @@
                     "auth",
                     "logout"
                   ]
-                }
+                },
+                "description": "Logout the current user and invalidate their session."
               }
             },
             {
@@ -273,7 +332,8 @@
                     "auth",
                     "request-password-reset"
                   ]
-                }
+                },
+                "description": "Send a password reset OTP to the user's email. Rate limited to 3 requests per 60 seconds."
               }
             },
             {
@@ -299,13 +359,14 @@
                     "auth",
                     "reset-password"
                   ]
-                }
+                },
+                "description": "Reset password using the OTP token received via email."
               }
             }
           ]
         },
         {
-          "name": "Workspace Isolation, Companies & RBAC",
+          "name": "User Profile Management",
           "item": [
             {
               "name": "Get Current User Profile",
@@ -326,7 +387,8 @@
                     "users",
                     "me"
                   ]
-                }
+                },
+                "description": "Retrieve the currently authenticated user's profile details."
               }
             },
             {
@@ -356,9 +418,15 @@
                     "users",
                     "me"
                   ]
-                }
+                },
+                "description": "Update the currently authenticated user's profile (fullName, phoneNumber, avatarKey)."
               }
-            },
+            }
+          ]
+        },
+        {
+          "name": "Workspace Isolation, Companies & RBAC",
+          "item": [
             {
               "name": "Create Company",
               "request": {
@@ -385,7 +453,8 @@
                   "path": [
                     "companies"
                   ]
-                }
+                },
+                "description": "Create a new company. Requires admin or customer role."
               }
             },
             {
@@ -406,55 +475,8 @@
                   "path": [
                     "companies"
                   ]
-                }
-              }
-            },
-            {
-              "name": "Get Company By ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/companies/{{companyId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "companies",
-                    "{{companyId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Company",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Acme Media Labs\"\n}"
                 },
-                "url": {
-                  "raw": "{{baseUrl}}/companies/{{companyId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "companies",
-                    "{{companyId}}"
-                  ]
-                }
+                "description": "List all companies accessible by the authenticated user."
               }
             },
             {
@@ -476,7 +498,8 @@
                     "companies",
                     "{{companyId}}"
                   ]
-                }
+                },
+                "description": "Retrieve a specific company by ID."
               }
             },
             {
@@ -506,7 +529,31 @@
                     "companies",
                     "{{companyId}}"
                   ]
-                }
+                },
+                "description": "Update a company's details."
+              }
+            },
+            {
+              "name": "Delete Company",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/companies/{{companyId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "companies",
+                    "{{companyId}}"
+                  ]
+                },
+                "description": "Delete a company by ID."
               }
             },
             {
@@ -533,52 +580,8 @@
                     "billing",
                     "webhook"
                   ]
-                }
-              }
-            },
-            {
-              "name": "Get Workspace Analytics",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/analytics",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "analytics"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Delete Company",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/companies/{{companyId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "companies",
-                    "{{companyId}}"
-                  ]
-                }
+                },
+                "description": "Stripe webhook endpoint for billing events."
               }
             },
             {
@@ -607,7 +610,8 @@
                   "path": [
                     "workspaces"
                   ]
-                }
+                },
+                "description": "Create a new workspace under a company."
               }
             },
             {
@@ -628,7 +632,8 @@
                   "path": [
                     "workspaces"
                   ]
-                }
+                },
+                "description": "List all workspaces accessible by the authenticated user."
               }
             },
             {
@@ -650,7 +655,8 @@
                     "workspaces",
                     "{{workspaceId}}"
                   ]
-                }
+                },
+                "description": "Retrieve a specific workspace by ID."
               }
             },
             {
@@ -680,7 +686,8 @@
                     "workspaces",
                     "{{workspaceId}}"
                   ]
-                }
+                },
+                "description": "Update workspace name, timezone, or other settings."
               }
             },
             {
@@ -702,7 +709,32 @@
                     "workspaces",
                     "{{workspaceId}}"
                   ]
-                }
+                },
+                "description": "Delete a workspace by ID."
+              }
+            },
+            {
+              "name": "Get Workspace Analytics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/analytics",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "analytics"
+                  ]
+                },
+                "description": "Retrieve analytics data for a workspace."
               }
             }
           ]
@@ -713,7 +745,7 @@
       "name": "Module 2: Dynamic RSS Ingestion Engine",
       "item": [
         {
-          "name": "Workspace RSS CRUD Controllers",
+          "name": "Workspace RSS Source CRUD",
           "item": [
             {
               "name": "Create RSS Source",
@@ -743,7 +775,8 @@
                     "{{workspaceId}}",
                     "rss-sources"
                   ]
-                }
+                },
+                "description": "Add a new RSS source to a workspace."
               }
             },
             {
@@ -766,7 +799,8 @@
                     "{{workspaceId}}",
                     "rss-sources"
                   ]
-                }
+                },
+                "description": "List all RSS sources for a workspace."
               }
             },
             {
@@ -790,7 +824,8 @@
                     "rss-sources",
                     "{{sourceId}}"
                   ]
-                }
+                },
+                "description": "Retrieve a specific RSS source by ID."
               }
             },
             {
@@ -822,7 +857,8 @@
                     "rss-sources",
                     "{{sourceId}}"
                   ]
-                }
+                },
+                "description": "Update an RSS source's feed URL or description."
               }
             },
             {
@@ -852,1452 +888,1308 @@
                       "value": "true"
                     }
                   ]
-                }
-              }
-            },
-            {
-              "name": "Create RSS Feed",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}"
                 },
-                "url": {
-                  "raw": "{{baseUrl}}/rss-feeds",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "rss-feeds"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List RSS Feeds",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/rss-feeds",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "rss-feeds"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get RSS Feed By ID",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/rss-feeds/{{rssFeedId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "rss-feeds",
-                    "{{rssFeedId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update RSS Feed",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/rss-feeds/{{rssFeedId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "rss-feeds",
-                    "{{rssFeedId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Delete RSS Feed",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/rss-feeds/{{rssFeedId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "rss-feeds",
-                    "{{rssFeedId}}"
-                  ]
-                }
+                "description": "Delete an RSS source. Pass force=true for hard delete."
               }
             }
-          ]
-        },
-        {
-          "name": "Fetch Frequency & Dynamic BullMQ Schedules",
-          "item": [
-            {
-              "name": "Update Queue Config",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"]\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "queue-config"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Create Queue",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"daily-sync\",\n  \"description\": \"Runs the daily sync workflow\",\n  \"status\": \"active\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/queues",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "queues"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Queues",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/queues",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "queues"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Queue By ID",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/queues/{{queueId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "queues",
-                    "{{queueId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Queue",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"daily-sync-updated\",\n  \"status\": \"inactive\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/queues/{{queueId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "queues",
-                    "{{queueId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Delete Queue",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/queues/{{queueId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "queues",
-                    "{{queueId}}"
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Module 3: Smart Deduplication & Raw Posts Buffer",
-      "item": [
-        {
-          "name": "Raw Post Buffer Storage & Historical Window Filtering",
-          "item": [
-            {
-              "name": "Get Buffered Posts",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts?days=3",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "buffer-posts"
-                  ],
-                  "query": [
+          },
+          {
+            "name": "Fetch Frequency & Dynamic BullMQ Schedules",
+            "item": [
+              {
+                "name": "Update Queue Config",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
                     {
-                      "key": "days",
-                      "value": "3"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Buffered Post By ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "buffer-posts",
-                    "{{bufferPostId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Buffered Post",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"buffered\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "buffer-posts",
-                    "{{bufferPostId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Delete Buffered Post",
-              "request": {
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "buffer-posts",
-                    "{{bufferPostId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Raw Posts",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/raw-posts",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "raw-posts"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Raw Post By ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/raw-posts/{{rawPostId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "raw-posts",
-                    "{{rawPostId}}"
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Module 4: AI Creative Engine & Asset Pipeline",
-      "item": [
-        {
-          "name": "Prompt Version Control Matrix",
-          "item": [
-            {
-              "name": "Create AI Prompt",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"scope\": \"WORKSPACE\",\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"createdById\": \"{{createdById}}\",\n  \"name\": \"Daily Tech Digest\",\n  \"description\": \"Combine top items into a digest\",\n  \"systemPrompt\": \"You are a helpful assistant.\",\n  \"versionTag\": \"v1\",\n  \"tone\": \"professional\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Global AI Prompts",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/global",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "global"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Workspace AI Prompts",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/workspace",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "workspace"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get AI Prompt By ID",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/{{aiPromptId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "{{aiPromptId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Global AI Prompt",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Global Social Digest Template\",\n  \"description\": \"Updated global reusable digest template\",\n  \"systemPrompt\": \"You are an expert social media strategist creating concise, high-engagement digest posts.\",\n  \"tone\": \"executive\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/global/{{aiPromptId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "global",
-                    "{{aiPromptId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Workspace AI Prompt",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Workspace Daily Digest\",\n  \"description\": \"Updated workspace-specific digest template\",\n  \"systemPrompt\": \"Create a concise social media digest tailored to this workspace audience.\",\n  \"tone\": \"professional\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/workspace/{{aiPromptId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "workspace",
-                    "{{aiPromptId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Delete AI Prompt",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/{{aiPromptId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "{{aiPromptId}}"
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "Batch Digest Aggregator & Asset Pipeline",
-          "item": [
-            {
-              "name": "Generate Batch Digest",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"model\": \"gpt-4o-mini\",\n  \"limit\": 5\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/ai-prompts/batch-digest",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "ai-prompts",
-                    "batch-digest"
-                  ]
-                },
-                "description": "Generates a batch digest from buffered posts. Tenant-hardening expectation: workspaceId must belong to the authenticated user and promptVersionId must resolve to either a GLOBAL prompt or a WORKSPACE prompt owned by the same tenant/user. Authorization header is included as a placeholder for the future JWT guard on this endpoint."
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const requestBody = JSON.parse(pm.request.body.raw || '{}');",
-                      "",
-                      "pm.test('request includes tenant-scoped workspaceId', function () {",
-                      "  pm.expect(requestBody.workspaceId, 'workspaceId').to.be.a('string').and.not.empty;",
-                      "});",
-                      "",
-                      "pm.test('request includes explicit promptVersionId for template resolution', function () {",
-                      "  pm.expect(requestBody.promptVersionId, 'promptVersionId').to.be.a('string').and.not.empty;",
-                      "});",
-                      "",
-                      "pm.test('future auth context is present when JWT guard is enabled', function () {",
-                      "  const authHeader = pm.request.headers.get('Authorization') || '';",
-                      "  pm.expect(authHeader).to.include('Bearer');",
-                      "});",
-                      "",
-                      "pm.test('response maps text and asset into GeneratedDraft payload', function () {",
-                      "  const json = pm.response.json();",
-                      "  pm.expect(json).to.have.property('draft');",
-                      "  pm.expect(json).to.have.property('digestText');",
-                      "  pm.expect(json).to.have.property('asset');",
-                      "  pm.expect(json.draft.generationType).to.eql('batch_digest');",
-                      "  pm.expect(json.draft.status).to.eql('pending');",
-                      "  pm.expect(json.draft.socialPlainText).to.be.a('string').and.not.empty;",
-                      "  pm.expect(json.draft.imageUrl).to.be.a('string').and.not.empty;",
-                      "});",
-                      "",
-                      "// Tenant validation checklist for backend hardening:",
-                      "// 1. workspaceId must be accessible by req.user.userId.",
-                      "// 2. promptVersionId must belong to a GLOBAL prompt or a WORKSPACE prompt owned by the caller.",
-                      "// 3. Never allow promptVersionId from another tenant workspace."
-                    ]
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Module 5 & 6: Autopilot Scheduler & Retries",
-      "description": "Autopilot queue dispatch validates a dispatchable GeneratedDraft, acquires Redis TTL lock autopilot-lock:<draftId>, forwards imageUrl/imageProvider metadata to DispatcherService, and enqueues failed publishes into FailedPostsQueue with exponential backoff.",
-      "item": [
-        {
-          "name": "Autopilot Draft Lifecycle",
-          "item": [
-            {
-              "name": "Create Generated Draft",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"rawPostId\": \"{{rawPostId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"socialPlainText\": \"Check out this article: https://techcrunch.com/some-article\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\",\n  \"generationType\": \"manual_on_demand\",\n  \"status\": \"approved\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts"
-                  ]
-                },
-                "description": "Creates a dispatchable draft shape for Autopilot validation. imageUrl may be a real DALL-E asset or the resilient fallback PNG uploaded to MinIO; imageProvider remains openai because the provider boundary is still OpenAI even when the asset buffer falls back locally."
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const requestBody = JSON.parse(pm.request.body.raw || '{}');",
-                      "",
-                      "pm.test('draft is dispatchable by Autopilot worker', function () {",
-                      "  pm.expect(requestBody.status).to.be.oneOf(['approved', 'scheduled', 'auto_dispatch']);",
-                      "});",
-                      "",
-                      "pm.test('asset contract supports real or fallback OpenAI image', function () {",
-                      "  pm.expect(requestBody.imageUrl, 'imageUrl').to.be.a('string').and.not.empty;",
-                      "  pm.expect(requestBody.imageProvider, 'imageProvider').to.eql('openai');",
-                      "});",
-                      "",
-                      "// Worker compatibility checklist:",
-                      "// 1. BullMQ job should include { workspaceId, draftId } when dispatching a specific draft.",
-                      "// 2. Worker lock key is autopilot-lock:<draftId> and is released with owner-safe compare/delete.",
-                      "// 3. Dispatcher payload receives images: [draft.imageUrl] and metadata.imageProvider."
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              "name": "List Generated Drafts",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Generated Draft By ID",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Validate Dispatchable Draft Asset Contract",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
-                },
-                "description": "Use this before enqueueing an Autopilot dispatch job. The selected draft must belong to the workspace job payload, be dispatchable, and carry imageUrl/imageProvider consistently whether the asset came from DALL-E or the MinIO fallback path."
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "const json = pm.response.json();",
-                      "",
-                      "pm.test('selected draft id matches queue payload draftId variable', function () {",
-                      "  if (json && json.id) {",
-                      "    pm.expect(json.id).to.eql(pm.collectionVariables.get('generatedDraftId') || pm.environment.get('generatedDraftId'));",
-                      "  }",
-                      "});",
-                      "",
-                      "pm.test('draft status is eligible for dispatch', function () {",
-                      "  if (json && json.status) {",
-                      "    pm.expect(json.status).to.be.oneOf(['approved', 'scheduled', 'auto_dispatch']);",
-                      "  }",
-                      "});",
-                      "",
-                      "pm.test('image metadata is safe for dispatcher strategies', function () {",
-                      "  if (json && json.imageUrl) {",
-                      "    pm.expect(json.imageUrl).to.be.a('string').and.not.empty;",
-                      "    pm.expect(json.imageProvider || 'openai').to.be.a('string').and.not.empty;",
-                      "  }",
-                      "});",
-                      "",
-                      "// Autopilot worker derives dispatcher payload as:",
-                      "// images: draft.imageUrl ? [draft.imageUrl] : undefined",
-                      "// metadata: { draftId, workspaceId, imageProvider, hasGeneratedAsset }"
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              "name": "Update Generated Draft",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"scheduled\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
-                },
-                "description": "Updates one generated_draft. Admins can patch any draft; non-admin users can patch only drafts in workspaces they can access."
-              }
-            },
-            {
-              "name": "Delete Generated Draft",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Module 7: Pluggable Omni-Channel Dispatcher",
-      "item": [
-        {
-          "name": "Publishing Channel Configuration",
-          "item": [
-            {
-              "name": "Get OAuth Authorize URL",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels/oauth/linkedin/authorize?workspaceId={{workspaceId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "publishing-channels",
-                    "oauth",
-                    "linkedin",
-                    "authorize"
-                  ],
-                  "query": [
-                    {
-                      "key": "workspaceId",
-                      "value": "{{workspaceId}}"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "name": "OAuth Callback",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels/oauth/linkedin/callback?code=sample_code&state=sample_state",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "publishing-channels",
-                    "oauth",
-                    "linkedin",
-                    "callback"
-                  ],
-                  "query": [
-                    {
-                      "key": "code",
-                      "value": "sample_code"
+                      "key": "Content-Type",
+                      "value": "application/json"
                     },
                     {
-                      "key": "state",
-                      "value": "sample_state"
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
                     }
-                  ]
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"]\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "queue-config"
+                    ]
+                  },
+                  "description": "Update workspace queue configuration including fetch frequency and posting times. Automatically reschedules RSS and Autopilot BullMQ jobs."
                 }
               }
-            },
-            {
-              "name": "Create Publishing Channel",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"platform\": \"wordpress\",\n  \"credentials\": {\n    \"endpoint\": \"https://example-blog.com/wp-json\",\n    \"username\": \"admin\",\n    \"password\": \"app-password-secret\"\n  },\n  \"isActive\": true\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "publishing-channels"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Publishing Channels",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels?workspaceId={{workspaceId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "publishing-channels"
-                  ],
-                  "query": [
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Module 3: Smart Deduplication & Raw Posts Buffer",
+        "item": [
+          {
+            "name": "Raw Post Buffer Storage & Historical Window Filtering",
+            "item": [
+              {
+                "name": "Get Buffered Posts",
+                "request": {
+                  "method": "GET",
+                  "header": [
                     {
-                      "key": "workspaceId",
-                      "value": "{{workspaceId}}"
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
                     }
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Publishing Channel By ID",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
-                  "host": [
-                    "{{baseUrl}}"
                   ],
-                  "path": [
-                    "publishing-channels",
-                    "{{publishingChannelId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Update Publishing Channel",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"platform\": \"wordpress\",\n  \"credentials\": {\n    \"endpoint\": \"https://example-blog.com/wp-json\",\n    \"username\": \"admin\",\n    \"password\": \"updated-secret-password\"\n  },\n  \"isActive\": true\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "publishing-channels",
-                    "{{publishingChannelId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Delete Publishing Channel",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "publishing-channels",
-                    "{{publishingChannelId}}"
-                  ]
-                }
-              }
-            }
-          ]
-        },
-        {
-          "name": "Core Dispatcher Tests",
-          "item": [
-            {
-              "name": "Publish Dispatch",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts?days=3",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "buffer-posts"
+                    ],
+                    "query": [
+                      {
+                        "key": "days",
+                        "value": "3"
+                      }
+                    ]
                   },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"channel\": \"wordpress\",\n  \"title\": \"AI Daily Digest: Top Stories\",\n  \"content\": \"<h1>Today's Highlights</h1><p>Automated digest content goes here.</p>\",\n  \"images\": [\"https://images.example.com/ai-generated-1.jpg\"],\n  \"credentials\": {\n    \"apiUrl\": \"https://example.com\",\n    \"accessToken\": \"wp_token_here\",\n    \"target\": \"\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "dispatcher",
-                    "publish"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Publish Dispatch - LinkedIn",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"channel\": \"linkedin\",\n  \"title\": \"AI Daily Digest: LinkedIn Edition\",\n  \"content\": \"Automated LinkedIn post content goes here.\",\n  \"images\": [\"https://images.example.com/linkedin-cover.jpg\"],\n  \"credentials\": {\n    \"accessToken\": \"linkedin_token_here\",\n    \"target\": \"urn:li:person:xxxx\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "dispatcher",
-                    "publish"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Publish Dispatch - Facebook",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"channel\": \"facebook\",\n  \"title\": \"AI Daily Digest: Facebook Edition\",\n  \"content\": \"Automated Facebook post content goes here.\",\n  \"images\": [\"https://images.example.com/facebook-cover.jpg\"],\n  \"credentials\": {\n    \"accessToken\": \"facebook_token_here\",\n    \"target\": \"1234567890\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "dispatcher",
-                    "publish"
-                  ]
-                }
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Module 8: Human Review & Manual Publishing System",
-      "item": [
-        {
-          "name": "Workspace Review Mode",
-          "item": [
-            {
-              "name": "Update Queue Config With Auto-Post Mode",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"],\n  \"autoPost\": false\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "queue-config"
-                  ]
-                },
-                "description": "Turns the workspace into review-first mode. Set autoPost=true to skip review and let the generated draft flow publish automatically after creation."
-              }
-            },
-            {
-              "name": "Enable Auto-Post",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"autoPost\": true\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/auto-post",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "auto-post"
-                  ]
-                },
-                "description": "Enable auto-posting for the workspace so new generated drafts can bypass review and publish automatically."
-              }
-            },
-            {
-              "name": "Disable Auto-Post",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"autoPost\": false\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/auto-post",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "workspaces",
-                    "{{workspaceId}}",
-                    "auto-post"
-                  ]
-                },
-                "description": "Disable auto-posting to keep generated drafts in review-first mode."
-              }
-            },
-            {
-              "name": "Create Review Draft",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"promptVersionId\": \"{{promptVersionId}}\",\n  \"socialPlainText\": \"Draft content for human review.\",\n  \"wordpressHtmlContent\": \"<p>Draft body for WordPress review mode.</p>\",\n  \"title\": \"Review draft for Module 8\",\n  \"hashtags\": [\"surge\", \"review\"],\n  \"status\": \"review\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "List Generated Drafts",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts?workspaceId={{workspaceId}}",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts"
-                  ],
-                  "query": [
-                    {
-                      "key": "workspaceId",
-                      "value": "{{workspaceId}}"
-                    }
-                  ]
+                  "description": "Retrieve buffered posts for a workspace within a given time window (days parameter)."
                 }
               },
-              "description": "Admins can call this without workspaceId to see all generated_drafts; workspace users can pass workspaceId to scope the list to an accessible workspace."
-            },
-            {
-              "name": "Get Generated Draft",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
+              {
+                "name": "Get Buffered Post By ID",
+                "request": {
+                  "method": "GET",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
                   ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "buffer-posts",
+                      "{{bufferPostId}}"
+                    ]
+                  },
+                  "description": "Retrieve a specific buffered post by ID."
                 }
               },
-              "description": "Returns one generated_draft by id. Admins can read any draft; workspace users can read drafts they own or can access through their workspace membership."
-            },
-            {
-              "name": "Approve Generated Draft",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"action\": \"approve\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
+              {
+                "name": "Update Buffered Post",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
                   ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"status\": \"buffered\"\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "buffer-posts",
+                      "{{bufferPostId}}"
+                    ]
+                  },
+                  "description": "Update a buffered post's status."
+                }
+              },
+              {
+                "name": "Delete Buffered Post",
+                "request": {
+                  "method": "DELETE",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/buffer-posts/{{bufferPostId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "buffer-posts",
+                      "{{bufferPostId}}"
+                    ]
+                  },
+                  "description": "Delete a buffered post from the workspace."
+                }
+              },
+              {
+                "name": "List Raw Posts",
+                "request": {
+                  "method": "GET",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/raw-posts",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "raw-posts"
+                    ]
+                  },
+                  "description": "List all raw posts (last 3 days window)."
+                }
+              },
+              {
+                "name": "Get Raw Post By ID",
+                "request": {
+                  "method": "GET",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/raw-posts/{{rawPostId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "raw-posts",
+                      "{{rawPostId}}"
+                    ]
+                  },
+                  "description": "Retrieve a specific raw post by ID."
                 }
               }
-            },
-            {
-              "name": "Reject Generated Draft",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"action\": \"reject\",\n  \"status\": \"rejected\"\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
-                  "host": [
-                    "{{baseUrl}}"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Module 4: AI Creative Engine & Asset Pipeline",
+        "item": [
+          {
+            "name": "Batch Digest Aggregator",
+            "item": [
+              {
+                "name": "Generate Batch Digest",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
                   ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Publish Draft Now",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"tone\": \"confident\",\n  \"model\": \"gpt-4o-mini\",\n  \"limit\": 5\n}"
                   },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"channels\": [\"wordpress\", \"linkedin\"]\n}"
-                },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/publish",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}",
-                    "publish"
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Schedule Draft Publish",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
+                  "url": {
+                    "raw": "{{baseUrl}}/ai-prompts/batch-digest",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "ai-prompts",
+                      "batch-digest"
+                    ]
                   },
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{jwtToken}}"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"scheduledAt\": \"2026-07-15T09:00:00.000Z\",\n  \"channels\": [\"wordpress\"]\n}"
+                  "description": "Generates a batch digest from buffered posts. Driven by system-wide ToneProfile matching the selected tone. Enqueues an async content generation job via BullMQ."
                 },
-                "url": {
-                  "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/schedule",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "generated-drafts",
-                    "{{generatedDraftId}}",
-                    "schedule"
-                  ]
-                }
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "type": "text/javascript",
+                      "exec": [
+                        "const requestBody = JSON.parse(pm.request.body.raw || '{}');",
+                        "",
+                        "pm.test('request includes tenant-scoped workspaceId', function () {",
+                        "  pm.expect(requestBody.workspaceId, 'workspaceId').to.be.a('string').and.not.empty;",
+                        "});",
+                        "",
+                        "pm.test('request includes explicit tone profile name', function () {",
+                        "  pm.expect(requestBody.tone, 'tone').to.be.a('string').and.not.empty;",
+                        "});",
+                        "",
+                        "pm.test('response confirms asynchronous generation process started', function () {",
+                        "  const json = pm.response.json();",
+                        "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                        "  pm.expect(json.message).to.eql('Generation process started');",
+                        "});"
+                      ]
+                    }
+                  }
+                ]
               }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Module 4.5: Tone Profiles Management",
+        "item": [
+          {
+            "name": "List Tone Profiles",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/tone-profiles",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tone-profiles"
+                ]
+              },
+              "description": "Lists all active tone profiles. Available to admin and customer roles."
             }
-          ]
-        }
-      ]
-    }
-  ]
-}
+          },
+          {
+            "name": "Get Tone Profile",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/tone-profiles/{{toneProfileId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tone-profiles",
+                  "{{toneProfileId}}"
+                ]
+              },
+              "description": "Retrieves detail parameters and step prompts of a specific tone profile."
+            }
+          },
+          {
+            "name": "Create Tone Profile",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"confident-postman\",\n  \"stepOneRawDraftPrompt\": {\n    \"title\": \"Step 1 Draft Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{articleContext}}\"\n  },\n  \"stepTwoPolishingPrompt\": {\n    \"title\": \"Step 2 Polish Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  },\n  \"stepThreeImagePrompt\": {\n    \"title\": \"Step 3 Image Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  }\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/tone-profiles",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tone-profiles"
+                ]
+              },
+              "description": "Creates a new tone profile along with its three step prompts (Admin Only)."
+            }
+          },
+          {
+            "name": "Update Tone Profile",
+            "request": {
+              "method": "PATCH",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"name\": \"confident-postman-updated\",\n  \"stepOneRawDraftPrompt\": {\n    \"title\": \"Updated Step 1\",\n    \"systemPrompt\": \"Updated system prompt\"\n  }\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/tone-profiles/{{toneProfileId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tone-profiles",
+                  "{{toneProfileId}}"
+                ]
+              },
+              "description": "Updates a tone profile and/or its step prompts (Admin Only). Partial updates supported."
+            }
+          },
+          {
+            "name": "Delete Tone Profile",
+            "request": {
+              "method": "DELETE",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/tone-profiles/{{toneProfileId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "tone-profiles",
+                  "{{toneProfileId}}"
+                ]
+              },
+              "description": "Deletes a tone profile (Admin Only)."
+            }
+          }
+        ]
+      },
+      {
+        "name": "Module 5 & 6: Autopilot Scheduler & Generated Drafts",
+        "description": "Generated draft lifecycle management including creation, review, approval/rejection, publishing, and scheduling. Autopilot queue dispatch validates dispatchable drafts, acquires Redis TTL locks, and forwards to DispatcherService.",
+        "item": [
+          {
+            "name": "Generated Draft CRUD",
+            "item": [
+              {
+                "name": "Create Generated Draft",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"rawPostId\": \"{{rawPostId}}\",\n  \"toneProfileId\": \"{{toneProfileId}}\",\n  \"socialPlainText\": \"Check out this article: https://techcrunch.com/some-article\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\",\n  \"generationType\": \"manual_on_demand\",\n  \"status\": \"approved\",\n  \"title\": \"AI Generated Draft\",\n  \"blogPostContent\": \"<p>Full blog post content here.</p>\",\n  \"hashtags\": [\"surge\", \"ai\", \"content\"]\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts"
+                    ]
+                  },
+                  "description": "Creates a new generated draft. Requires JWT authentication. Body matches CreateGeneratedDraftDto with all optional fields."
+                },
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "type": "text/javascript",
+                      "exec": [
+                        "const json = pm.response.json();",
+                        "if (json && json.data && json.data.id) {",
+                        "  pm.collectionVariables.set('generatedDraftId', json.data.id);",
+                        "}"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "List Generated Drafts",
+                "request": {
+                  "method": "GET",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts?workspaceId={{workspaceId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts"
+                    ],
+                    "query": [
+                      {
+                        "key": "workspaceId",
+                        "value": "{{workspaceId}}"
+                      },
+                      {
+                        "key": "status",
+                        "value": "approved",
+                        "disabled": true
+                      },
+                      {
+                        "key": "includeDeleted",
+                        "value": "false",
+                        "disabled": true
+                      }
+                    ]
+                  },
+                  "description": "Lists generated drafts. Admins can omit workspaceId to see all; workspace users scope by workspaceId. Optional query filters: status, includeDeleted."
+                }
+              },
+              {
+                "name": "Get Generated Draft By ID",
+                "request": {
+                  "method": "GET",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}"
+                    ]
+                  },
+                  "description": "Retrieve a specific generated draft by ID. Access is scoped by user's workspace membership."
+                }
+              },
+              {
+                "name": "Update Generated Draft",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"status\": \"scheduled\",\n  \"title\": \"Updated Draft Title\",\n  \"blogPostContent\": \"<p>Updated blog content</p>\",\n  \"socialPlainText\": \"Updated social text\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\",\n  \"hashtags\": [\"updated\", \"content\"],\n  \"seoTitle\": \"SEO Optimized Title\",\n  \"metaDescription\": \"A compelling meta description.\",\n  \"excerpt\": \"Short excerpt for cards\",\n  \"slug\": \"updated-draft-slug\"\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}"
+                    ]
+                  },
+                  "description": "Updates a generated draft. Supports action field (approve/reject/save), status transitions, content editing, SEO fields, and image metadata."
+                }
+              },
+              {
+                "name": "Delete Generated Draft",
+                "request": {
+                  "method": "DELETE",
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}"
+                    ]
+                  },
+                  "description": "Soft-delete a generated draft."
+                }
+              }
+            ]
+          },
+          {
+            "name": "Review & Approval Workflow",
+            "item": [
+              {
+                "name": "Approve Generated Draft",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"action\": \"approve\"\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}"
+                    ]
+                  },
+                  "description": "Approve a draft for publishing. Sets the draft status to 'approved' via the action field."
+                }
+              },
+              {
+                "name": "Reject Generated Draft",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"action\": \"reject\",\n  \"status\": \"rejected\"\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}"
+                    ]
+                  },
+                  "description": "Reject a draft. Sets the draft status to 'rejected'."
+                }
+              },
+              {
+                "name": "Create Review Draft",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"toneProfileId\": \"{{toneProfileId}}\",\n  \"socialPlainText\": \"Draft content for human review.\",\n  \"blogPostContent\": \"<p>Draft body for WordPress review mode.</p>\",\n  \"title\": \"Review draft for Module 8\",\n  \"hashtags\": [\"surge\", \"review\"],\n  \"status\": \"review\"\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts"
+                    ]
+                  },
+                  "description": "Create a draft in review status for human review workflow."
+                }
+              }
+            ]
+          },
+          {
+            "name": "Publishing & Scheduling",
+            "item": [
+              {
+                "name": "Publish Draft Now",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"channels\": [\"wordpress\", \"linkedin\"]\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/publish",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}",
+                      "publish"
+                    ]
+                  },
+                  "description": "Publish a draft immediately to specified channels."
+                }
+              },
+              {
+                "name": "Schedule Draft Publish",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"scheduledAt\": \"2026-08-15T09:00:00.000Z\",\n  \"channels\": [\"wordpress\"]\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}/schedule",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "generated-drafts",
+                      "{{generatedDraftId}}",
+                      "schedule"
+                    ]
+                  },
+                  "description": "Schedule a draft for future publishing at a specific ISO 8601 timestamp."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Module 7: Pluggable Omni-Channel Dispatcher",
+        "item": [
+          {
+            "name": "Publishing Channel Configuration",
+            "item": [
+              {
+                "name": "Get OAuth Authorize URL",
+                "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels/oauth/linkedin/authorize?workspaceId={{workspaceId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels",
+                      "oauth",
+                      "linkedin",
+                      "authorize"
+                    ],
+                    "query": [
+                      {
+                        "key": "workspaceId",
+                        "value": "{{workspaceId}}"
+                      }
+                    ]
+                  },
+                  "description": "Get the OAuth authorization URL for a platform (e.g., linkedin). The :platform path segment is dynamic."
+                }
+              },
+              {
+                "name": "OAuth Callback",
+                "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels/oauth/linkedin/callback?code=sample_code&state=sample_state",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels",
+                      "oauth",
+                      "linkedin",
+                      "callback"
+                    ],
+                    "query": [
+                      {
+                        "key": "code",
+                        "value": "sample_code"
+                      },
+                      {
+                        "key": "state",
+                        "value": "sample_state"
+                      }
+                    ]
+                  },
+                  "description": "OAuth callback endpoint. Receives authorization code and state, exchanges for tokens, and creates a publishing channel."
+                }
+              },
+              {
+                "name": "Create Publishing Channel",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"workspaceId\": \"{{workspaceId}}\",\n  \"platform\": \"wordpress\",\n  \"credentials\": {\n    \"endpoint\": \"https://example-blog.com/wp-json\",\n    \"username\": \"admin\",\n    \"password\": \"app-password-secret\"\n  },\n  \"isActive\": true\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels"
+                    ]
+                  },
+                  "description": "Create a new publishing channel for a workspace (e.g., WordPress, LinkedIn, Facebook)."
+                }
+              },
+              {
+                "name": "List Publishing Channels",
+                "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels?workspaceId={{workspaceId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels"
+                    ],
+                    "query": [
+                      {
+                        "key": "workspaceId",
+                        "value": "{{workspaceId}}"
+                      }
+                    ]
+                  },
+                  "description": "List publishing channels, optionally filtered by workspaceId."
+                }
+              },
+              {
+                "name": "Get Publishing Channel By ID",
+                "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels",
+                      "{{publishingChannelId}}"
+                    ]
+                  },
+                  "description": "Retrieve a specific publishing channel by ID."
+                }
+              },
+              {
+                "name": "Update Publishing Channel",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"platform\": \"wordpress\",\n  \"credentials\": {\n    \"endpoint\": \"https://example-blog.com/wp-json\",\n    \"username\": \"admin\",\n    \"password\": \"updated-secret-password\"\n  },\n  \"isActive\": true\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels",
+                      "{{publishingChannelId}}"
+                    ]
+                  },
+                  "description": "Update a publishing channel's credentials or status."
+                }
+              },
+              {
+                "name": "Delete Publishing Channel",
+                "request": {
+                  "method": "DELETE",
+                  "header": [],
+                  "url": {
+                    "raw": "{{baseUrl}}/publishing-channels/{{publishingChannelId}}",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "publishing-channels",
+                      "{{publishingChannelId}}"
+                    ]
+                  },
+                  "description": "Delete a publishing channel."
+                }
+              }
+            ]
+          },
+          {
+            "name": "Core Dispatcher Tests",
+            "item": [
+              {
+                "name": "Publish Dispatch - WordPress",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"channel\": \"wordpress\",\n  \"title\": \"AI Daily Digest: Top Stories\",\n  \"content\": \"<h1>Today's Highlights</h1><p>Automated digest content goes here.</p>\",\n  \"images\": [\"https://images.example.com/ai-generated-1.jpg\"],\n  \"credentials\": {\n    \"apiUrl\": \"https://example.com\",\n    \"accessToken\": \"wp_token_here\",\n    \"target\": \"\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "dispatcher",
+                      "publish"
+                    ]
+                  },
+                  "description": "Dispatch a publish request to WordPress channel. Credentials include apiUrl and accessToken."
+                }
+              },
+              {
+                "name": "Publish Dispatch - LinkedIn",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"channel\": \"linkedin\",\n  \"title\": \"AI Daily Digest: LinkedIn Edition\",\n  \"content\": \"Automated LinkedIn post content goes here.\",\n  \"images\": [\"https://images.example.com/linkedin-cover.jpg\"],\n  \"credentials\": {\n    \"accessToken\": \"linkedin_token_here\",\n    \"target\": \"urn:li:person:xxxx\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "dispatcher",
+                      "publish"
+                    ]
+                  },
+                  "description": "Dispatch a publish request to LinkedIn channel. Target is the LinkedIn person or organization URN."
+                }
+              },
+              {
+                "name": "Publish Dispatch - Facebook",
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"channel\": \"facebook\",\n  \"title\": \"AI Daily Digest: Facebook Edition\",\n  \"content\": \"Automated Facebook post content goes here.\",\n  \"images\": [\"https://images.example.com/facebook-cover.jpg\"],\n  \"credentials\": {\n    \"accessToken\": \"facebook_token_here\",\n    \"target\": \"1234567890\"\n  },\n  \"metadata\": {\n    \"status\": \"publish\"\n  }\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/dispatcher/publish",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "dispatcher",
+                      "publish"
+                    ]
+                  },
+                  "description": "Dispatch a publish request to Facebook channel. Target is the Facebook page ID."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Module 8: Human Review & Auto-Post Mode",
+        "item": [
+          {
+            "name": "Workspace Review Mode",
+            "item": [
+              {
+                "name": "Update Queue Config With Auto-Post Mode",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"fetchFrequencyHours\": 6,\n  \"postingTimes\": [\"09:00\", \"17:00\"],\n  \"autoPost\": false\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/queue-config",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "queue-config"
+                    ]
+                  },
+                  "description": "Turns the workspace into review-first mode. Set autoPost=true to skip review and let drafts publish automatically."
+                }
+              },
+              {
+                "name": "Enable Auto-Post",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"autoPost\": true\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/auto-post",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "auto-post"
+                    ]
+                  },
+                  "description": "Enable auto-posting for the workspace so new generated drafts can bypass review and publish automatically."
+                }
+              },
+              {
+                "name": "Disable Auto-Post",
+                "request": {
+                  "method": "PATCH",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    },
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{jwtToken}}"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"autoPost\": false\n}"
+                  },
+                  "url": {
+                    "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/auto-post",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "workspaces",
+                      "{{workspaceId}}",
+                      "auto-post"
+                    ]
+                  },
+                  "description": "Disable auto-posting to keep generated drafts in review-first mode."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Module 9: MinIO Asset Storage",
+        "item": [
+          {
+            "name": "Storage Health Check",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/storage/health",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "storage",
+                  "health"
+                ]
+              },
+              "description": "Verify MinIO storage connection health."
+            }
+          },
+          {
+            "name": "Create Presigned Upload URL",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"contentType\": \"image/png\",\n  \"folder\": \"drafts\",\n  \"fileName\": \"ai-generated-cover.png\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/storage/presigned-upload",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "storage",
+                  "presigned-upload"
+                ]
+              },
+              "description": "Generate a presigned URL for uploading a file to MinIO. Returns the upload URL and object key."
+            }
+          },
+          {
+            "name": "Get Presigned Download URL",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{baseUrl}}/storage/presigned-download/drafts%2Fai-generated-cover.png",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "storage",
+                  "presigned-download",
+                  "drafts%2Fai-generated-cover.png"
+                ]
+              },
+              "description": "Get a presigned download URL for a stored object. The objectName path parameter should be URL-encoded."
+            }
+          }
+        ]
+      },
+      {
+        "name": "Module 10: Queue Monitoring (Admin)",
+        "item": [
+          {
+            "name": "Get Queue Stats",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/queues/stats",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "queues",
+                  "stats"
+                ]
+              },
+              "description": "Fetches BullMQ job state counts for content-generation-queue (Admin Only)."
+            }
+          },
+          {
+            "name": "Get Failed Queue Jobs",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/queues/failed",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "queues",
+                  "failed"
+                ]
+              },
+              "description": "Lists failed jobs with stack traces for debugging (Admin Only)."
+            }
+          },
+          {
+            "name": "Retry Failed Queue Job",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/queues/retry/{{failedJobId}}",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "queues",
+                  "retry",
+                  "{{failedJobId}}"
+                ]
+              },
+              "description": "Triggers retry of a specific failed content generation job (Admin Only)."
+            }
+          },
+          {
+            "name": "Clean Queue History",
+            "request": {
+              "method": "DELETE",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/queues/clean",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "queues",
+                  "clean"
+                ]
+              },
+              "description": "Cleans the completed and failed job histories (Admin Only)."
+            }
+          }
+        ]
+      }
+    ]
+  }

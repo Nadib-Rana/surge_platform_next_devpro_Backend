@@ -66,7 +66,7 @@ describe("AutopilotDispatchProcessor", () => {
     prisma.generatedDraft.findFirst.mockResolvedValue({
       id: draftId,
       workspaceId,
-      wordpressHtmlContent: "<p>WordPress digest</p>",
+      blogPostContent: "<p>WordPress digest</p>",
       socialPlainText: "Social digest",
       imageUrl: "http://localhost:9000/surge-assets/fallback.png?signature=1",
       imageProvider: "openai",
@@ -132,7 +132,7 @@ describe("AutopilotDispatchProcessor", () => {
     prisma.generatedDraft.findFirst.mockResolvedValue({
       id: draftId,
       workspaceId,
-      wordpressHtmlContent: null,
+      blogPostContent: null,
       socialPlainText: "Social digest",
       imageUrl: null,
       imageProvider: null,

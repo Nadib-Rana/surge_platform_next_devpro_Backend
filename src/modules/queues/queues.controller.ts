@@ -2,41 +2,57 @@ import {
   Controller,
   Get,
   Post,
-  Body,
-  Patch,
   Param,
   Delete,
+  UseGuards,
 } from "@nestjs/common";
 import { QueuesService } from "./queues.service";
-import { CreateQueueDto } from "./dto/create-queue.dto";
-import { UpdateQueueDto } from "./dto/update-queue.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from "@nestjs/swagger";
 
+@ApiTags("Queue Monitoring")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("queues")
 export class QueuesController {
   constructor(private readonly queuesService: QueuesService) {}
 
-  @Post()
-  create(@Body() createQueueDto: CreateQueueDto) {
-    return this.queuesService.create(createQueueDto);
+  @Get("stats")
+  @Roles("admin")
+  @ApiOperation({ summary: "Get BullMQ job status count stats (Admin Only)" })
+  @ApiOkResponse({ description: "Queue stats returned successfully" })
+  getStats() {
+    return this.queuesService.getStats();
   }
 
-  @Get()
-  findAll() {
-    return this.queuesService.findAll();
+  @Get("failed")
+  @Roles("admin")
+  @ApiOperation({ summary: "List failed jobs in content-generation-queue (Admin Only)" })
+  @ApiOkResponse({ description: "Failed jobs returned successfully" })
+  getFailedJobs() {
+    return this.queuesService.getFailedJobs();
   }
 
-  @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.queuesService.findOne(id);
+  @Post("retry/:jobId")
+  @Roles("admin")
+  @ApiOperation({ summary: "Retry a specific failed job in queue (Admin Only)" })
+  @ApiOkResponse({ description: "Job retry execution started" })
+  retryJob(@Param("jobId") jobId: string) {
+    return this.queuesService.retryJob(jobId);
   }
 
-  @Patch(":id")
-  update(@Param("id") id: string, @Body() updateQueueDto: UpdateQueueDto) {
-    return this.queuesService.update(id, updateQueueDto);
-  }
-
-  @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.queuesService.remove(id);
+  @Delete("clean")
+  @Roles("admin")
+  @ApiOperation({ summary: "Clean completed and failed job histories (Admin Only)" })
+  @ApiOkResponse({ description: "Queue history cleaned successfully" })
+  cleanHistory() {
+    return this.queuesService.cleanHistory();
   }
 }

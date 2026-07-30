@@ -1,11 +1,14 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
+import { getQueueToken } from "@nestjs/bullmq";
 import { EventEmitter } from "events";
 import https from "https";
 import { AiPromptsService } from "./ai-prompts.service";
 import { AiAssetService } from "./ai-asset.service";
 import { PrismaService } from "../../common/context/prisma.service";
 import { StorageService } from "../storage/storage.service";
+import { ContentGenerationProcessor } from "./content-generation.processor";
+import { GeneratedDraftsService } from "../generated-drafts/generated-drafts.service";
 
 const mockOpenAIChatCreate = jest.fn();
 const mockOpenAIImageGenerate = jest.fn();
@@ -26,8 +29,8 @@ jest.mock("openai", () => ({
 
 type PrismaMock = {
   rawPostsBuffer: { findMany: jest.Mock };
-  promptVersion: { findUnique: jest.Mock; findFirst: jest.Mock };
-  generatedDraft: { create: jest.Mock };
+  generatedDraft: { create: jest.Mock; update: jest.Mock; findUnique: jest.Mock };
+  toneProfile: { findFirst: jest.Mock };
 };
 
 type SleepCapableAiPromptsService = {
@@ -36,12 +39,16 @@ type SleepCapableAiPromptsService = {
 
 describe("AiPromptsService Batch Digest Integration", () => {
   const workspaceId = "13512611-3a7d-4a38-9fb3-cd095264e58f";
-  const promptVersionId = "9cd31741-9688-481e-8d35-93fae4c7bdcb";
+  const toneProfileId = "tone-profile-1";
 
   let moduleRef: TestingModule;
   let service: AiPromptsService;
+  let processor: ContentGenerationProcessor;
   let prisma: PrismaMock;
   let storageService: { uploadBuffer: jest.Mock };
+  const mockQueue = {
+    add: jest.fn(),
+  };
 
   const bufferedPosts = [
     {
@@ -70,20 +77,36 @@ describe("AiPromptsService Batch Digest Integration", () => {
     },
   ];
 
-  const activePromptVersion = {
-    id: promptVersionId,
-    promptId: "prompt-1",
-    versionTag: "v3",
-    systemPrompt:
-      "Create both WordPress HTML and concise social copy for a batch digest.",
-    tone: "confident",
-    isActive: true,
-    aiPrompt: {
-      id: "prompt-1",
-      workspaceId,
-      scope: "WORKSPACE",
-      createdById: "user-1",
+  const mockToneProfile = {
+    id: toneProfileId,
+    name: "confident",
+    stepOneRawDraftPrompt: {
+      id: "step1-id",
+      toneProfileId,
+      title: "Step 1 Prompt",
+      systemPrompt: "Create both WordPress HTML and concise social copy for a batch digest.",
+      template: "Use the following raw articles for context:\n{{articleContext}}\n\nRespond strictly in valid JSON format with keys: blogPostContent, imagePrompt.",
     },
+    stepTwoPolishingPrompt: {
+      id: "step2-id",
+      toneProfileId,
+      title: "Step 2 Prompt",
+      systemPrompt: "You are a professional content editor. Take the following raw blog post draft and polish it. Improve grammar, formatting, structure, and tone.",
+      template: "Tone: {{tone}}\nAudience: {{audience}}\n\nRaw draft content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with keys: blogPostContent, socialPlainText, hashtags.",
+    },
+    stepThreeImagePrompt: {
+      id: "step3-id",
+      toneProfileId,
+      title: "Step 3 Prompt",
+      systemPrompt: "Analyze the polished blog post and generate a detailed image generation prompt suitable for DALL-E.",
+      template: "Polished Content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with key: imagePrompt.",
+    },
+  };
+
+  const mockWorkspace = {
+    id: workspaceId,
+    name: "Test Workspace",
+    queueConfig: JSON.stringify({ stepDelayMs: 100 }),
   };
 
   beforeEach(async () => {
@@ -91,8 +114,8 @@ describe("AiPromptsService Batch Digest Integration", () => {
 
     prisma = {
       rawPostsBuffer: { findMany: jest.fn() },
-      promptVersion: { findUnique: jest.fn(), findFirst: jest.fn() },
-      generatedDraft: { create: jest.fn() },
+      generatedDraft: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
+      toneProfile: { findFirst: jest.fn() },
     };
 
     storageService = {
@@ -103,6 +126,7 @@ describe("AiPromptsService Batch Digest Integration", () => {
       providers: [
         AiPromptsService,
         AiAssetService,
+        ContentGenerationProcessor,
         { provide: PrismaService, useValue: prisma },
         {
           provide: ConfigService,
@@ -115,20 +139,64 @@ describe("AiPromptsService Batch Digest Integration", () => {
           },
         },
         { provide: StorageService, useValue: storageService },
+        {
+          provide: getQueueToken("content-generation-queue"),
+          useValue: mockQueue,
+        },
+        {
+          provide: GeneratedDraftsService,
+          useValue: {
+            applyAutoPostPolicy: jest.fn().mockImplementation(async (id) => {
+              return { id, status: "READY_FOR_REVIEW", blogPostContent: "Polished blog post content" };
+            }),
+          },
+        },
       ],
     }).compile();
 
     service = moduleRef.get(AiPromptsService);
+    processor = moduleRef.get(ContentGenerationProcessor);
 
     prisma.rawPostsBuffer.findMany.mockResolvedValue(bufferedPosts);
-    prisma.promptVersion.findUnique.mockResolvedValue(activePromptVersion);
+    prisma.toneProfile.findFirst.mockResolvedValue(mockToneProfile);
+
+    let currentDraft: any = null;
+
     prisma.generatedDraft.create.mockImplementation(
-      ({ data }: { data: Record<string, unknown> }) => ({
-        id: "draft-1",
-        createdAt: new Date("2026-07-09T10:00:00.000Z"),
-        ...data,
-      }),
+      ({ data }: { data: Record<string, any> }) => {
+        currentDraft = {
+          id: "draft-1",
+          createdAt: new Date("2026-07-09T10:00:00.000Z"),
+          workspace: mockWorkspace,
+          ...data,
+        };
+        return currentDraft;
+      },
     );
+    prisma.generatedDraft.update.mockImplementation(
+      ({ data }: { data: Record<string, any> }) => {
+        currentDraft = {
+          ...currentDraft,
+          ...data,
+        };
+        return currentDraft;
+      },
+    );
+    prisma.generatedDraft.findUnique.mockImplementation(() => {
+      return currentDraft;
+    });
+
+    mockQueue.add.mockImplementation(async (name, data, opts) => {
+      // Synchronously execute the processor steps to simulate queue background process execution
+      if (name === "step-one") {
+        await processor.process({ name: "step-one", data, id: "job-1" } as any);
+      } else if (name === "step-two") {
+        await processor.process({ name: "step-two", data, id: "job-2" } as any);
+      } else if (name === "step-three") {
+        await processor.process({ name: "step-three", data, id: "job-3" } as any);
+      }
+      return { id: "job-id" };
+    });
   });
 
   afterEach(async () => {
@@ -139,23 +207,48 @@ describe("AiPromptsService Batch Digest Integration", () => {
   it("generates social text, WordPress HTML, OpenAI image asset, and stores a pending batch digest draft", async () => {
     const socialPlainText =
       "AI search, creator automation, and smarter GPU scheduling are reshaping teams today.";
-    const wordpressHtmlContent =
+    const blogPostContent =
       "<article><h1>AI Daily Digest</h1><p>Enterprise teams are adopting AI search, content automation, and GPU scheduling improvements.</p></article>";
     const minioPresignedUrl =
       "http://localhost:9000/surge-assets/workspaces/13512611/assets/happy.png?X-Amz-Signature=success";
 
-    mockOpenAIChatCreate.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify({
-              socialPlainText,
-              wordpressHtmlContent,
-            }),
+    mockOpenAIChatCreate
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                blogPostContent,
+                imagePrompt: "High quality image prompt",
+              }),
+            },
           },
-        },
-      ],
-    });
+        ],
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                blogPostContent: "Polished blog post content",
+                socialPlainText,
+                hashtags: ["ai", "automation"],
+              }),
+            },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                imagePrompt: "High quality image prompt",
+              }),
+            },
+          },
+        ],
+      });
     mockOpenAIImageGenerate.mockResolvedValue({
       data: [{ url: "https://openai.example/assets/digest.png" }],
     });
@@ -177,29 +270,31 @@ describe("AiPromptsService Batch Digest Integration", () => {
       return { on: jest.fn().mockReturnThis() } as never;
     }) as typeof https.get);
     storageService.uploadBuffer.mockResolvedValue(minioPresignedUrl);
-    const sleepTarget = service as unknown as SleepCapableAiPromptsService;
+    const sleepTarget = processor as any;
     const sleepSpy = jest
       .spyOn(sleepTarget, "sleep")
       .mockImplementation(() => Promise.resolve());
 
     const result = await service.generateBatchDigest({
       workspaceId,
-      promptVersionId,
+      tone: "confident",
       model: "gpt-4o-mini",
       limit: 3,
     });
 
-    expect(mockOpenAIChatCreate).toHaveBeenCalledTimes(1);
-    expect(sleepSpy).toHaveBeenCalledWith(3000);
+    expect(result).toEqual({ message: "Generation process started" });
+    expect(mockQueue.add).toHaveBeenCalledWith("step-one", expect.any(Object), expect.any(Object));
+
+    expect(mockOpenAIChatCreate).toHaveBeenCalledTimes(3);
 
     expect(prisma.rawPostsBuffer.findMany).toHaveBeenCalledWith({
       where: { workspaceId, status: "buffered" },
       orderBy: { publishedAt: "desc" },
       take: 3,
     });
-    expect(prisma.promptVersion.findUnique).toHaveBeenCalledWith({
-      where: { id: promptVersionId },
-      include: { aiPrompt: true },
+    expect(prisma.toneProfile.findFirst).toHaveBeenCalledWith({
+      where: { name: { equals: "confident", mode: "insensitive" } },
+      include: { stepOneRawDraftPrompt: true },
     });
     expect(mockOpenAIImageGenerate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -217,63 +312,94 @@ describe("AiPromptsService Batch Digest Integration", () => {
     expect(prisma.generatedDraft.create).toHaveBeenCalledWith({
       data: {
         workspaceId,
-        promptVersionId,
+        toneProfileId,
         rawPostId: null,
         generationType: "batch_digest",
-        wordpressHtmlContent,
-        socialPlainText,
-        imageUrl: minioPresignedUrl,
-        imageProvider: "openai",
-        status: "pending",
+        blogPostContent,
+        socialPlainText: "",
+        imageUrl: null,
+        imageProvider: null,
+        status: "RAW_DRAFT",
+      },
+      include: {
+        workspace: true,
       },
     });
-    expect(result.draft.wordpressHtmlContent).toBe(wordpressHtmlContent);
-    expect(result.draft.socialPlainText).toBe(socialPlainText);
-    expect(result.draft.imageUrl).toBe(minioPresignedUrl);
-    expect(result.draft.imageProvider).toBe("openai");
-    expect(result.asset.usedFallback).toBe(false);
+    expect(prisma.generatedDraft.update).toHaveBeenCalledWith({
+      where: { id: "draft-1" },
+      data: {
+        blogPostContent: "Polished blog post content",
+        socialPlainText,
+        status: "POLISHED",
+      },
+    });
   });
 
   it("keeps generated text intact and stores a fallback MinIO asset when DALL-E is restricted", async () => {
     const socialPlainText =
       "Three trends to watch: AI search, automated content ops, and smarter cloud scheduling.";
-    const wordpressHtmlContent =
+    const blogPostContent =
       "<article><h1>Batch Digest</h1><p>AI search, creator tools, and cloud scheduling are moving from experiments into operating workflows.</p></article>";
     const fallbackPresignedUrl =
       "http://localhost:9000/surge-assets/workspaces/13512611/assets/fallback.png?X-Amz-Signature=fallback";
 
-    mockOpenAIChatCreate.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: [
-              `WORDPRESS HTML: ${wordpressHtmlContent}`,
-              `SOCIAL TEXT: ${socialPlainText}`,
-            ].join("\n"),
+    mockOpenAIChatCreate
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                blogPostContent,
+                imagePrompt: "High quality image prompt",
+              }),
+            },
           },
-        },
-      ],
-    });
+        ],
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                blogPostContent: "Polished blog post content",
+                socialPlainText,
+                hashtags: ["ai", "automation"],
+              }),
+            },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                imagePrompt: "High quality image prompt",
+              }),
+            },
+          },
+        ],
+      });
     mockOpenAIImageGenerate.mockRejectedValue(
       Object.assign(new Error("400 Billing/Key Restriction"), {
         status: 400,
       }),
     );
     storageService.uploadBuffer.mockResolvedValue(fallbackPresignedUrl);
-    const sleepTarget = service as unknown as SleepCapableAiPromptsService;
+    const sleepTarget = processor as any;
     const sleepSpy = jest
       .spyOn(sleepTarget, "sleep")
       .mockImplementation(() => Promise.resolve());
 
     const result = await service.generateBatchDigest({
       workspaceId,
-      promptVersionId,
+      tone: "confident",
       model: "gpt-4o-mini",
       limit: 3,
     });
 
-    expect(mockOpenAIChatCreate).toHaveBeenCalledTimes(1);
-    expect(sleepSpy).toHaveBeenCalledWith(3000);
+    expect(result).toEqual({ message: "Generation process started" });
+    expect(mockOpenAIChatCreate).toHaveBeenCalledTimes(3);
 
     const httpsGetSpy = jest.spyOn(https, "get");
     expect(httpsGetSpy).not.toHaveBeenCalled();
@@ -295,20 +421,26 @@ describe("AiPromptsService Batch Digest Integration", () => {
     expect(prisma.generatedDraft.create).toHaveBeenCalledWith({
       data: {
         workspaceId,
-        promptVersionId,
+        toneProfileId,
         rawPostId: null,
         generationType: "batch_digest",
-        wordpressHtmlContent,
-        socialPlainText,
-        imageUrl: fallbackPresignedUrl,
-        imageProvider: "openai",
-        status: "pending",
+        blogPostContent,
+        socialPlainText: "",
+        imageUrl: null,
+        imageProvider: null,
+        status: "RAW_DRAFT",
+      },
+      include: {
+        workspace: true,
       },
     });
-    expect(result.draft.wordpressHtmlContent).toBe(wordpressHtmlContent);
-    expect(result.draft.socialPlainText).toBe(socialPlainText);
-    expect(result.draft.imageUrl).toBe(fallbackPresignedUrl);
-    expect(result.draft.imageProvider).toBe("openai");
-    expect(result.asset.usedFallback).toBe(true);
+    expect(prisma.generatedDraft.update).toHaveBeenCalledWith({
+      where: { id: "draft-1" },
+      data: {
+        blogPostContent: "Polished blog post content",
+        socialPlainText,
+        status: "POLISHED",
+      },
+    });
   });
 });

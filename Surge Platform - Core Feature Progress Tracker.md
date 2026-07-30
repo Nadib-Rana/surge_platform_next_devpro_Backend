@@ -81,12 +81,19 @@
 
 ## 🟩 Module 4: AI Creative Engine & Asset Pipeline `[STATUS: 100% COMPLETE]`
 
-* [x] **Multi-Provider LLM Circuit Breaker Fallback:** `generateLlmCompletion` হেল্পারে OpenAI -> Anthropic -> Local Rule-based synthesizer রেজিলিয়েন্স সার্কিট ব্রেকার ক্যাসকেড যুক্ত করা হয়েছে। প্রাইমারি এলএলএম প্রোভাইডার (যেমন OpenAI gpt-4o) ডাউন বা রেট লিমিট থাকলে অটোমেটিকলি অ্যানথ্রোপিক ক্লড অথবা লোকাল সিন্থেসাইজারে সুইচ করে জেনারেশন পাইপলাইন ক্র্যাশ প্রতিরোধ করে।
-* [x] **Robust Structured JSON Output Parser:** `parseBatchDigestContent()` হেল্পারে Markdown codeblock wrappers (````json ... ````) এবং কন্ট্রোল ক্যারেক্টার ক্লিন করে `wordpressHtmlContent`, `socialPlainText`, `imagePrompt`, এবং `hashtags` স্ট্রাকচার্ড ফিল্ড প্রিসাইসলি পার্স করা সুনিশ্চিত করা হয়েছে।
-* [x] **Prompt Version Control Matrix:** `AiPrompt` এবং `PromptVersion` টেবিল ডিজাইন ও আর্কিটেকচার, যা এআই প্রম্পটের হিস্ট্রি এবং টোন ট্র্যাক রাখবে।
-* [x] **Strict Prompt Scope Architecture:** `PromptScope` (GLOBAL/WORKSPACE) এবং `createdById` ownership constraint দিয়ে prompt template access আলাদা করা হয়েছে। `GET /ai-prompts/global` শুধুমাত্র global template দেয়, `GET /ai-prompts/workspace` শুধুমাত্র logged-in user's own workspace template দেয়, এবং `GET /ai-prompts/:id` GLOBAL হলে allow করে কিন্তু অন্য tenant-এর WORKSPACE prompt হলে `404` দেয়।
-* [x] **Atomic Prompt Version Update:** `PATCH /ai-prompts/global/:id` admin-only এবং `PATCH /ai-prompts/workspace/:id` owner-only করা হয়েছে। `name` / `description` parent prompt table-এ আপডেট হয়, আর `systemPrompt` বা `tone` বদলালে Prisma `$transaction` দিয়ে পুরনো version inactive করে নতুন active `PromptVersion` তৈরি হয়।
-* [x] **Cross-Tenant Validation Note:** Batch digest generation এখনো `workspaceId` + `promptVersionId` payload নেয়; production hardening checklist-এ JWT authenticated workspace ownership এবং promptVersion/workspace compatibility validation বাধ্যতামূলক হিসেবে চিহ্নিত করা হয়েছে।
+* [x] **Multi-Provider LLM Circuit Breaker Fallback:** `generateLlmCompletion` হেল্পারে Anthropic (`claude-3-5-sonnet-20241022`) প্রাইমারি এআই প্রোভাইডার হিসেবে সেট করা হয়েছে এবং এতে robust try...catch failover মেকানিজম যুক্ত করা হয়েছে যা Anthropic ব্যর্থ হলে স্বয়ংক্রিয়ভাবে OpenAI (`gpt-4o`) এ সুইচ করে এবং সব ব্যর্থ হলে Local Rule-based synthesizer এ সুইচ করে।
+* [x] **Robust Structured JSON Output Parser & Renaming:** WordPress-নির্দিষ্ট কলামের নাম পরিবর্তন করে প্ল্যাটফর্ম-নিরপেক্ষ `blogPostContent` (DB: `blog_post_content`) করা হয়েছে এবং `parseBatchDigestContent()` এ dynamic fallback সহ generic key পার্সিং সুনিশ্চিত করা হয়েছে।
+* [x] **Perspective API Toxicity check:** raw articles-এর content safety ও toxicity ফিল্টারিং করার জন্য Perspective API check ইন্টিগ্রেট করা হয়েছে (with dynamic local fallback checks)।
+* [x] **3-Step AI Pipeline & Database Lifecycle:** complete database-backed 3-step AI pipeline ইমপ্লিমেন্ট করা হয়েছে:
+  - **Step 1 (RAW_DRAFT):** Raw articles থেকে primary content draft তৈরি করে `RAW_DRAFT` স্ট্যাটাসে সেভ করে।
+  - **Step 2 (POLISHED):** Raw draft থেকে polished blog content ও social copy জেনারেট করে `POLISHED` স্ট্যাটাসে আপডেট করে।
+  - **Step 3 (READY_FOR_REVIEW):** Polished post থেকে image prompt ও DALL-E image জেনারেট করে `READY_FOR_REVIEW` স্ট্যাটাসে সেভ করে auto-posting এ নিয়ে যায়।
+* [x] **Unified ToneProfile prompts grouping:** `schema.prisma` এ `ToneProfile` প্যারেন্ট মডেল যুক্ত করা হয়েছে এবং এর অধীনে `StepOneRawDraftPrompt`, `StepTwoPolishingPrompt`, এবং `StepThreeImagePrompt` তিনটি চাইল্ড প্রম্পটকে 1-to-1 রিলেশনের মাধ্যমে গ্রুপ করা হয়েছে।
+* [x] **BullMQ Background Content Generation Queue:** API execution কে background-এ অফলোড করার জন্য `content-generation-queue` তৈরি করা হয়েছে, যা client request-এ তাত্ক্ষণিকভাবে immediate response দেয় এবং configurable delay সহ step-by-step queue execution নিশ্চিত করে।
+* [x] **Sequential AI Chaining & Prompt Templates:** dynamic templates (Tone, Audience, previous outputs) ব্যবহার করে ৩-ধাপে sequential chaining workflow ব্যাকএন্ডে এস্টাবলিশ করা হয়েছে।
+* [x] **System-Wide Tone-Driven Prompt Pipeline:** `AiPrompt` ও `PromptVersion` এবং `GLOBAL`/`WORKSPACE` স্কোপ ম্যাট্রিক্সের জটিলতা দূর করে সম্পূর্ণ সিস্টেমকে একটিমাত্র গ্লোবাল এআই প্রম্পট ফ্লোতে রূপান্তর করা হয়েছে।
+* [x] **ToneProfile Schema Association:** ডাটাবেজে `ToneProfile` প্যারেন্ট মডেলের সাথে ৩টি চাইল্ড প্রম্পটকে যুক্ত করে প্রম্পট কনফিগারেশন সরাসরি টোন নেম দিয়ে কুয়েরি করা হয়।
+* [x] **Cleaned Fallbacks & APIs:** ক্রস-টেন্যান্ট এবং পুরনো প্রম্পট CRUD রিলেটেড ডকোড, ডিটিও, এবং ডাটাবেজ কলাম অপসারণ করে কোডবেস এবং এপিআই ডিজাইন সর্বোচ্চ সরলীকরণ করা হয়েছে।
 
 
 * [x] **Batch Digest Aggregator:** বাফারে থাকা একাধিক র-আর্টিকেলকে একসাথে কম্বাইন করে OpenAI/Claude text model-এ পাঠিয়ে ১টি trending "Batch Digest" social content তৈরি করা।
@@ -143,10 +150,31 @@
 ## 🟩 Module 8: Human Review & Manual Publishing System [STATUS: 100% COMPLETE]
 
 * [x] **Auto-Post Mode Toggle:** `PATCH /workspaces/:workspaceId/queue-config` এ `autoPost` যোগ করা হয়েছে, যাতে workspace-level review mode এবং direct publish mode switch করা যায়।
-* [x] **Review-First Draft Lifecycle:** `GeneratedDraft` এখন `draft`, `review`, `approved`, `scheduled`, `published`, `rejected`, `failed`, `deleted`, `auto_dispatch` lifecycle সাপোর্ট করে এবং `editorState`-এ title / excerpt / slug / hashtags / SEO metadata রাখা হয়।
+* [x] **Review-First Draft Lifecycle:** `GeneratedDraft` এখন `draft`, `review`, `approved`, `scheduled`, `published`, `rejected`, `failed`, `deleted`, `auto_dispatch`, `RAW_DRAFT`, `POLISHED`, `READY_FOR_REVIEW` lifecycle সাপোর্ট করে এবং `editorState`-এ title / excerpt / slug / hashtags / SEO metadata রাখা হয়।
 * [x] **Manual Review APIs:** generated draft list, details, edit, approve, reject এবং soft-delete flow চালু করা হয়েছে JWT-authenticated workspace access control সহ।
 * [x] **Publish Now & Schedule Publish:** immediate publish এবং scheduled publish endpoints যোগ হয়েছে, যেখানে selected publishing channels resolve হয়ে DispatcherService boundary দিয়ে dispatch হয়।
-* [x] **Permissions & Audit Log:** owner/admin/member workspace checks, manage-draft permission guard, এবং `SystemLog`-এ create/edit/publish/schedule/review audit trail রেকর্ড করা হয়।
+* [x] **Permissions & Audit Log:** owner/admin/member workspace checks, manage-draft permission guard, এবং `SystemLog`-এ create/edit/publish/schedule/review audit trail রেকর্ড করা হয়েছে।
 * [x] **Swagger, Postman & Tests:** Swagger docs bootstrap করা হয়েছে, Postman collection-এ Module 8 flow যোগ করা হয়েছে, এবং generated-drafts service/controller unit tests green করা হয়েছে।
+
+---
+
+## 🟩 Module 4.5: Tone Profiles Admin Management `[STATUS: 100% COMPLETE]`
+
+* [x] **ToneProfiles CRUD Controller & Service:** `ToneProfilesController` এবং `ToneProfilesService` তৈরি করা হয়েছে যা `GET /tone-profiles`, `GET /tone-profiles/:id`, `POST /tone-profiles`, `PATCH /tone-profiles/:id`, এবং `DELETE /tone-profiles/:id` এন্ডপয়েন্ট এক্সপোজ করে। `POST`/`PATCH`/`DELETE` শুধুমাত্র Admin Role-এর জন্য সীমাবদ্ধ (`JwtAuthGuard` + `RolesGuard`)।
+* [x] **Transactional Nested Prompt Creation:** `Prisma.$transaction` ব্যবহার করে `ToneProfile` তৈরির সাথে সাথে `StepOneRawDraftPrompt`, `StepTwoPolishingPrompt`, এবং `StepThreeImagePrompt` — তিনটি চাইল্ড প্রম্পট একটি atomic transaction-এ তৈরি হয়। ডুপ্লিকেট নেম চেক এবং upsert সাপোর্ট রয়েছে।
+* [x] **DTO Validation:** `class-validator` ও `class-transformer` দিয়ে `CreateToneProfileDto` এবং `UpdateToneProfileDto` ভ্যালিডেশন যুক্ত করা হয়েছে নেস্টেড প্রম্পট কনফিগারেশন সহ।
+* [x] **Unit Tests & Postman Sync:** `tone-profiles.service.spec.ts` ও `tone-profiles.controller.spec.ts` ইউনিট টেস্ট এবং Postman collection-এ "Module 4.5: Tone Profiles Management" ফোল্ডারে সব রিকোয়েস্ট যুক্ত করা হয়েছে।
+
+---
+
+## 🟩 Module 9: BullMQ Queue Health Monitoring `[STATUS: 100% COMPLETE]`
+
+* [x] **Real BullMQ Integration:** `QueuesModule` এ `@nestjs/bullmq` দিয়ে `content-generation-queue` রেজিস্টার করে `QueuesService` সরাসরি আসল BullMQ Queue instance-এর সাথে কানেক্ট করা হয়েছে।
+* [x] **Queue Stats Endpoint (`GET /queues/stats`):** `queue.getJobCounts()` ব্যবহার করে active, completed, failed, delayed, এবং waiting জবগুলোর সংখ্যা রিটার্ন করে।
+* [x] **Failed Jobs Log (`GET /queues/failed`):** `queue.getFailed()` ব্যবহার করে ব্যর্থ জবগুলোর আইডি, নাম, ডাটা, ফেইলড রিজন এবং স্ট্যাকট্রেস রিটার্ন করে ডিবাগিং সহজ করা হয়েছে।
+* [x] **Job Retry (`POST /queues/retry/:jobId`):** নির্দিষ্ট ফেইলড জব আইডি দিয়ে `job.retry()` কল করে জবটি পুনরায় কিউতে পাঠানো যায়।
+* [x] **Queue Cleanup (`DELETE /queues/clean`):** `queue.clean()` দিয়ে completed এবং failed জব হিস্ট্রি ক্লিন করে Redis মেমরি সাশ্রয় করা যায়।
+* [x] **Admin-Only Access:** সব এন্ডপয়েন্ট `JwtAuthGuard` + `RolesGuard` + `@Roles('admin')` দিয়ে সীমাবদ্ধ।
+* [x] **Unit Tests & Postman Sync:** `queues.controller.spec.ts` ও `queues.service.spec.ts` ইউনিট টেস্ট এবং Postman collection-এ "Module 7: Queue Monitoring" ফোল্ডারে সব রিকোয়েস্ট যুক্ত করা হয়েছে।
 
 ---

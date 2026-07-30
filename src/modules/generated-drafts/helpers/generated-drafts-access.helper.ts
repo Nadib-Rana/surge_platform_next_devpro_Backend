@@ -18,7 +18,7 @@ export interface DraftWorkspace {
 export interface DraftRecord {
   id: string;
   workspaceId: string;
-  wordpressHtmlContent: string | null;
+  blogPostContent: string | null;
   socialPlainText: string | null;
   imageUrl: string | null;
   imageProvider: string | null;

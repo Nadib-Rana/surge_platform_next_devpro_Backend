@@ -127,7 +127,7 @@ export function resolveChannelContent(
   editorState: any,
 ) {
   if (platform.toLowerCase() === "wordpress") {
-    return draft.wordpressHtmlContent || draft.socialPlainText || "";
+    return draft.blogPostContent || draft.socialPlainText || "";
   }
 
   if (draft.socialPlainText?.trim()) {
@@ -135,7 +135,7 @@ export function resolveChannelContent(
   }
 
   return stripHtml(
-    draft.wordpressHtmlContent ?? editorState.excerpt ?? "",
+    draft.blogPostContent ?? editorState.excerpt ?? "",
   );
 }
 

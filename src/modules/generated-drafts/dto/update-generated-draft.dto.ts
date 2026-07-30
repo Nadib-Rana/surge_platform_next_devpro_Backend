@@ -10,6 +10,9 @@ const DRAFT_STATUSES = [
   "rejected",
   "failed",
   "deleted",
+  "RAW_DRAFT",
+  "POLISHED",
+  "READY_FOR_REVIEW",
 ] as const;
 
 export class UpdateGeneratedDraftDto {
@@ -57,7 +60,7 @@ export class UpdateGeneratedDraftDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  wordpressHtmlContent?: string;
+  blogPostContent?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

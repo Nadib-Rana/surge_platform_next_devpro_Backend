@@ -5,7 +5,7 @@ import { EncryptionService } from "../../../common/security/encryption.service";
 export interface DraftForDispatch {
   id: string;
   workspaceId: string;
-  wordpressHtmlContent: string | null;
+  blogPostContent: string | null;
   socialPlainText: string | null;
   imageUrl: string | null;
   imageProvider: string | null;
@@ -53,8 +53,8 @@ function resolveContentForChannel(
 ): string {
   const isWordPress = platform.toLowerCase() === "wordpress";
   const content = isWordPress
-    ? draft.wordpressHtmlContent || draft.socialPlainText
-    : draft.socialPlainText || stripHtml(draft.wordpressHtmlContent);
+    ? draft.blogPostContent || draft.socialPlainText
+    : draft.socialPlainText || stripHtml(draft.blogPostContent);
 
   return content?.trim() ?? "";
 }

@@ -1,4 +1,1 @@
-import { PartialType } from "@nestjs/swagger";
-import { CreateQueueDto } from "./create-queue.dto";
-
-export class UpdateQueueDto extends PartialType(CreateQueueDto) {}
+// This file is intentionally empty — old boilerplate DTO removed during queues module refactoring.

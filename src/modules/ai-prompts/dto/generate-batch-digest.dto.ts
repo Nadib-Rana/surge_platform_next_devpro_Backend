@@ -5,8 +5,8 @@ export class GenerateBatchDigestDto {
   workspaceId: string;
 
   @IsOptional()
-  @IsUUID()
-  promptVersionId?: string;
+  @IsString()
+  tone?: string;
 
   @IsOptional()
   @IsString()

@@ -3,6 +3,8 @@ import { ConfigService } from "@nestjs/config";
 import { AiPromptsService } from "./ai-prompts.service";
 import { PrismaService } from "../../common/context/prisma.service";
 import { AiAssetService } from "./ai-asset.service";
+import { GeneratedDraftsService } from "../generated-drafts/generated-drafts.service";
+import { getQueueToken } from "@nestjs/bullmq";
 
 const mockOpenAIChatCreate = jest.fn();
 const mockAnthropicMessagesCreate = jest.fn();
@@ -72,6 +74,10 @@ describe("AiPromptsService", () => {
       generatedDraft: { create: jest.fn() },
     };
 
+    const mockQueue = {
+      add: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiPromptsService,
@@ -93,6 +99,16 @@ describe("AiPromptsService", () => {
               .fn()
               .mockResolvedValue({ imageUrl: "https://example.com/asset.png" }),
           },
+        },
+        {
+          provide: GeneratedDraftsService,
+          useValue: {
+            applyAutoPostPolicy: jest.fn(),
+          },
+        },
+        {
+          provide: getQueueToken("content-generation-queue"),
+          useValue: mockQueue,
         },
       ],
     }).compile();
@@ -388,28 +404,23 @@ describe("AiPromptsService", () => {
     ).rejects.toThrow("AI prompt workspace-prompt not found");
   });
 
-  it("uses Anthropic Claude when the request targets a Claude model", async () => {
-    prisma.rawPostsBuffer.findMany.mockResolvedValue([
-      { title: "Launch", rawContent: "Body" },
-    ]);
-    prisma.promptVersion.findFirst.mockResolvedValue({
-      id: "version-1",
-      systemPrompt: "You are a copywriter",
-      tone: "professional",
-      aiPrompt: { workspaceId: "workspace-1" },
-    });
-    prisma.generatedDraft.create.mockResolvedValue({ id: "draft-1" });
+  it("enqueues the content generation job to the queue", async () => {
+    const mockQueue = (service as any).contentGenerationQueue;
+    const addSpy = jest.spyOn(mockQueue, "add");
 
-    mockAnthropicMessagesCreate.mockResolvedValue({
-      content: [{ type: "text", text: "Claude digest" }],
-    });
-
-    await service.generateBatchDigest({
+    const result = await service.generateBatchDigest({
       workspaceId: "workspace-1",
       model: "claude-3-5-sonnet-latest",
     });
 
-    expect(mockAnthropicMessagesCreate).toHaveBeenCalled();
-    expect(prisma.generatedDraft.create).toHaveBeenCalled();
+    expect(result).toEqual({ message: "Generation process started" });
+    expect(addSpy).toHaveBeenCalledWith(
+      "step-one",
+      {
+        workspaceId: "workspace-1",
+        model: "claude-3-5-sonnet-latest",
+      },
+      expect.any(Object),
+    );
   });
 });

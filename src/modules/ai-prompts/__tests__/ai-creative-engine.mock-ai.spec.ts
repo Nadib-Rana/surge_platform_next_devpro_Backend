@@ -1,15 +1,11 @@
-import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "crypto";
-import { config as loadEnv } from "dotenv";
 import OpenAI from "openai";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../../../common/context/prisma.service";
 import { StorageService } from "../../storage/storage.service";
 
-loadEnv();
-
 const mockOpenAIChatCreate = jest.fn();
 const mockOpenAIImageGenerate = jest.fn();
-const mockAnthropicMessagesCreate = jest.fn();
 
 jest.mock("openai", () => ({
   __esModule: true,
@@ -25,22 +21,13 @@ jest.mock("openai", () => ({
   })),
 }));
 
-jest.mock("@anthropic-ai/sdk", () => ({
-  Anthropic: jest.fn().mockImplementation(() => ({
-    messages: {
-      create: mockAnthropicMessagesCreate,
-    },
-  })),
-}));
-
 interface SeededGraph {
   userId: string;
   companyId: string;
   workspaceId: string;
   rssFeedId: string;
   rawPostId: string;
-  aiPromptId: string;
-  promptVersionId: string;
+  toneProfileId: string;
 }
 
 describe("AI Creative Engine integration with mocked AI providers", () => {
@@ -58,37 +45,58 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
 
   beforeAll(async () => {
     try {
-      await prisma.$connect();
-      await storage.verifyConnection();
-    } catch (error) {
-      skipReason =
-        error instanceof Error
-          ? error.message
-          : "Local Prisma or MinIO infrastructure is not reachable";
-      console.warn(`Skipping mock-AI integration suite: ${skipReason}`);
+      const openAiKey = configService.get<string>("OPENAI_API_KEY");
+      if (!openAiKey) {
+        skipReason = "OPENAI_API_KEY is not defined in env";
+      }
+    } catch (err: any) {
+      skipReason = `Prisma connection failed: ${err.message}`;
     }
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  afterAll(async () => {
+    for (const graph of seeded) {
+      try {
+        await prisma.generatedDraft.deleteMany({
+          where: { workspaceId: graph.workspaceId },
+        });
+        await prisma.rawPostsBuffer.delete({
+          where: { id: graph.rawPostId },
+        });
+        await prisma.rssFeed.delete({
+          where: { id: graph.rssFeedId },
+        });
+        await prisma.workspace.delete({
+          where: { id: graph.workspaceId },
+        });
+        await prisma.company.delete({
+          where: { id: graph.companyId },
+        });
+        await prisma.user.delete({
+          where: { id: graph.userId },
+        });
+      } catch (cleanupErr) {
+        // Suppress cleanup failures in mock mode
+      }
+    }
+    await prisma.$disconnect();
   });
 
   async function seedGraph(): Promise<SeededGraph> {
-    const suffix = randomUUID();
+    const suffix = `${seeded.length}-${randomUUID().slice(0, 6)}`;
     const user = await prisma.user.create({
       data: {
-        email: `${runId}-${suffix}@example.test`,
-        password: "not-used-in-live-mock-ai-spec",
-        fullName: "Mock AI E2E User",
-        isVerified: true,
+        email: `mock-ai-e2e-${suffix}@surge-test.com`,
+        password: "secure-password-123",
+        fullName: `Mock AI E2E Tester ${suffix}`,
+        role: "admin",
       },
     });
 
     const company = await prisma.company.create({
       data: {
-        ownerId: user.id,
-        name: `Mock AI E2E Company ${suffix}`,
-        status: "active",
+        name: `Mock AI E2E Corp ${suffix}`,
+        domain: `surge-test-${suffix}.com`,
       },
     });
 
@@ -120,23 +128,11 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
       },
     });
 
-    const aiPrompt = await prisma.aiPrompt.create({
-      data: {
-        scope: "WORKSPACE",
-        workspaceId: workspace.id,
-        createdById: user.id,
-        name: "Mock AI creative prompt",
-        description: "Temporary prompt for mock-AI integration tests",
-      },
-    });
-
-    const promptVersion = await prisma.promptVersion.create({
-      data: {
-        promptId: aiPrompt.id,
-        versionTag: "v1",
-        systemPrompt: "Create multi-platform content from buffered articles.",
-        tone: "professional",
-        isActive: true,
+    const toneProfile = await prisma.toneProfile.upsert({
+      where: { name: "confident" },
+      update: {},
+      create: {
+        name: "confident",
       },
     });
 
@@ -146,8 +142,7 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
       workspaceId: workspace.id,
       rssFeedId: rssFeed.id,
       rawPostId: rawPost.id,
-      aiPromptId: aiPrompt.id,
-      promptVersionId: promptVersion.id,
+      toneProfileId: toneProfile.id,
     };
     seeded.push(graph);
     return graph;
@@ -167,7 +162,7 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
 
     const graph = await seedGraph();
     const mockedPayload = {
-      wordpressHtmlContent:
+      blogPostContent:
         "<article><h1>Mock AI Digest</h1><p>Funding momentum and platform reliability are trending.</p></article>",
       socialPlainText:
         "Funding momentum and platform reliability are trending today.",
@@ -189,7 +184,7 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
         },
         {
           role: "user",
-          content: "Create one WordPress HTML draft and one social post.",
+          content: "Create one blog post and one social post.",
         },
       ],
     });
@@ -205,15 +200,15 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
       data: {
         workspaceId: graph.workspaceId,
         rawPostId: graph.rawPostId,
-        promptVersionId: graph.promptVersionId,
-        wordpressHtmlContent: generated.wordpressHtmlContent,
+        toneProfileId: graph.toneProfileId,
+        blogPostContent: generated.blogPostContent,
         socialPlainText: generated.socialPlainText,
         generationType: "batch_digest",
         status: "pending",
       },
     });
 
-    expect(draft.wordpressHtmlContent).toContain("<article>");
+    expect(draft.blogPostContent).toContain("<article>");
     expect(draft.socialPlainText).toBe(
       "Funding momentum and platform reliability are trending today.",
     );
@@ -232,7 +227,7 @@ describe("AI Creative Engine integration with mocked AI providers", () => {
       data: {
         workspaceId: graph.workspaceId,
         rawPostId: graph.rawPostId,
-        promptVersionId: graph.promptVersionId,
+        toneProfileId: graph.toneProfileId,
         socialPlainText: "Mock social draft awaiting image upload.",
         generationType: "batch_digest",
         status: "pending",
