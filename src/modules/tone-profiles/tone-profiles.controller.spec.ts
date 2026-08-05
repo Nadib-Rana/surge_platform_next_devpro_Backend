@@ -55,9 +55,12 @@ describe("ToneProfilesController", () => {
   describe("create", () => {
     const createDto = {
       name: "happy",
+      stepGroupingPrompt: { title: "PG", systemPrompt: "SG", template: "TG" },
       stepOneRawDraftPrompt: { title: "P1", systemPrompt: "S1", template: "T1" },
       stepTwoPolishingPrompt: { title: "P2", systemPrompt: "S2", template: "T2" },
       stepThreeImagePrompt: { title: "P3", systemPrompt: "S3", template: "T3" },
+      stepCompanySocialPrompt: { title: "PC", systemPrompt: "SC", template: "TC" },
+      stepPersonalSocialPrompt: { title: "PS", systemPrompt: "SS", template: "TS" },
     };
 
     it("should call service.create", async () => {

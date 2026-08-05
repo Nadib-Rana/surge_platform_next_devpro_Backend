@@ -37,10 +37,15 @@ export class RssSourcesService {
 
     await checkRssSubscriptionLimit(this.prisma, company.ownerId, workspaceId);
 
+    const targetUrl = dto.feedUrl || dto.url;
+    if (!targetUrl) {
+      throw new BadRequestException("Please enter a valid RSS feed URL.");
+    }
+
     const created = await this.prisma.rssFeed.create({
       data: {
         workspaceId,
-        feedUrl: dto.feedUrl,
+        feedUrl: targetUrl,
         status: "active",
       },
     });
@@ -119,5 +124,11 @@ export class RssSourcesService {
     await this.scheduler.removeFeedJob(workspaceId, sourceId);
 
     return { id: sourceId, deleted: true };
+  }
+
+  async triggerScrape(workspaceId: string, sourceId: string) {
+    const feed = await this.getOne(workspaceId, sourceId);
+    await this.scheduler.scheduleFeedJob(workspaceId, feed.id, feed.feedUrl);
+    return { success: true, message: "Scrape job triggered successfully", feedId: sourceId };
   }
 }

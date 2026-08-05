@@ -94,7 +94,8 @@ describeLive("AI Creative Engine live E2E integration", () => {
     const company = await prisma.company.create({
       data: {
         name: `Live AI E2E Corp ${suffix}`,
-        domain: `surge-live-test-${suffix}.com`,
+        ownerId: user.id,
+        status: "active",
       },
     });
 
@@ -170,6 +171,12 @@ describeLive("AI Creative Engine live E2E integration", () => {
     };
     seeded.push(graph);
     return graph;
+  }
+
+  async function waitForAntiLockThrottle() {
+    const startedAt = Date.now();
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    return Date.now() - startedAt;
   }
 
   function extractGeneratedContent(rawContent: string): GeneratedContent {

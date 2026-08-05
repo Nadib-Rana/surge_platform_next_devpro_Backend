@@ -137,19 +137,31 @@ async function invokeOpenAI(
 ): Promise<string> {
   const finalSystem =
     overrideSystemPrompt ??
-    `${systemPrompt}\n\nTone: ${tone}\nRespond strictly in valid JSON format with keys: socialPlainText, blogPostContent, imagePrompt, hashtags.`;
+    (userPrompt
+      ? `${systemPrompt}\n\nTone: ${tone}`
+      : `${systemPrompt}\n\nTone: ${tone}\nRespond strictly in valid JSON format with keys: socialPlainText, blogPostContent, imagePrompt, hashtags.`);
   const finalUser =
     userPrompt ??
     `Create a single high-engagement social media digest from the raw articles below:\n\n${articleContext}`;
 
-  const completion = await openai.chat.completions.create({
+  const isJsonExpected =
+    finalSystem.toLowerCase().includes("json") ||
+    finalUser.toLowerCase().includes("json");
+
+  const completionOptions: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
     model,
     temperature: 0.7,
     messages: [
       { role: "system", content: finalSystem },
       { role: "user", content: finalUser },
     ],
-  });
+  };
+
+  if (isJsonExpected) {
+    completionOptions.response_format = { type: "json_object" };
+  }
+
+  const completion = await openai.chat.completions.create(completionOptions);
   return completion.choices[0]?.message?.content?.trim() || "";
 }
 
@@ -164,7 +176,9 @@ async function invokeAnthropic(
 ): Promise<string> {
   const finalSystem =
     overrideSystemPrompt ??
-    `${systemPrompt}\n\nTone: ${tone}\nRespond strictly in valid JSON format with keys: socialPlainText, blogPostContent, imagePrompt, hashtags.`;
+    (userPrompt
+      ? `${systemPrompt}\n\nTone: ${tone}`
+      : `${systemPrompt}\n\nTone: ${tone}\nRespond strictly in valid JSON format with keys: socialPlainText, blogPostContent, imagePrompt, hashtags.`);
   const finalUser =
     userPrompt ??
     `Create a single high-engagement social media digest from the raw articles below:\n\n${articleContext}`;

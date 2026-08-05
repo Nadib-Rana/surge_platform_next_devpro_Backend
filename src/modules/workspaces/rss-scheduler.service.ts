@@ -58,6 +58,17 @@ export class RssSchedulerService implements OnModuleInit {
     });
     const freqHours = (ws?.queueConfig as any)?.fetchFrequencyHours ?? 1;
     await this.scheduleRepeatableJob(workspaceId, feedId, feedUrl, freqHours);
+
+    // Queue an immediate fetch job on creation so articles are ingested right away
+    const immediateName = `rss-immediate:${workspaceId}:${feedId}:${Date.now()}`;
+    await this.queue.add(
+      immediateName,
+      { workspaceId, feedUrl, feedId },
+      {
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
+    );
   }
 
   private async scheduleRepeatableJob(

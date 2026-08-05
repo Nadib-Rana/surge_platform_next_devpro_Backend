@@ -6,6 +6,17 @@ export function stripMarkdownFences(content: string): string {
     .trim();
 }
 
+export function extractJsonString(content: string): string {
+  if (!content) return "";
+  const cleaned = stripMarkdownFences(content);
+  const startIdx = cleaned.indexOf("{");
+  const endIdx = cleaned.lastIndexOf("}");
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    return cleaned.substring(startIdx, endIdx + 1);
+  }
+  return cleaned;
+}
+
 export function wrapPlainTextForWordPress(content: string): string {
   return `<article><p>${escapeHtml(content)}</p></article>`;
 }

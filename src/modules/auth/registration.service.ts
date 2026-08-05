@@ -24,15 +24,17 @@ export class RegistrationService {
   ) {}
 
   async register(data: RegisterDto) {
-    const { email, password } = data;
+    const { email, password, fullName, name } = data;
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) throw new BadRequestException("Email already exists");
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const userFullName = fullName || name || undefined;
     const createData: Prisma.UserCreateInput = {
       email,
       password: hashedPassword,
+      fullName: userFullName,
     };
 
     const user = await this.prisma.user.create({ data: createData });

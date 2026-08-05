@@ -1,7 +1,6 @@
-import { Processor } from "@nestjs/bullmq";
+import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Job } from "bullmq";
 import { Injectable, Logger } from "@nestjs/common";
-import { WorkerHost } from "@nestjs/bullmq";
 import { PrismaService } from "../../common/context/prisma.service";
 import { createUrlHash } from "./utils/url-hash.util";
 import { extractAndSanitizeArticleContent } from "./utils/rss-article-extractor.util";
@@ -15,8 +14,8 @@ interface RssJobPayload {
 
 interface ParsedFeedItem {
   title?: string;
-  link?: string;
-  guid?: string;
+  link?: any;
+  guid?: any;
   content?: string;
   contentSnippet?: string;
   isoDate?: string;
@@ -31,6 +30,12 @@ export class RssProcessor extends WorkerHost {
     customFields: {
       item: ["content", "contentSnippet", "pubDate"],
     },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      Accept: "application/rss+xml, application/xml, text/xml, */*",
+    },
+    timeout: 15000,
   });
 
   constructor(private readonly prisma: PrismaService) {
@@ -44,26 +49,70 @@ export class RssProcessor extends WorkerHost {
       `Processing RSS feed ${feedId} for workspace ${workspaceId}`,
     );
 
+    // Validate workspace exists to prevent foreign key constraint failures
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true },
+    });
+
+    if (!workspace) {
+      this.logger.warn(
+        `Workspace ${workspaceId} does not exist in database. Deactivating orphan RSS feed ${feedId}.`,
+      );
+      await this.prisma.rssFeed.update({
+        where: { id: feedId },
+        data: { status: "inactive" },
+      }).catch(() => null);
+      return { inserted: 0, skipped: 0, error: `Workspace ${workspaceId} not found` };
+    }
+
     try {
-      const response = await fetch(feedUrl, {
-        method: "GET",
-        headers: { "User-Agent": "SurgePlatform/1.0 RSS bot" },
-      });
+      let items: ParsedFeedItem[] = [];
 
-      if (!response.ok) {
-        this.logger.warn(`RSS feed fetch returned status ${response.status} for ${feedUrl}`);
-        return { inserted: 0, skipped: 0, error: response.statusText };
+      // 1. Primary approach: fetch with custom headers and timeout
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const response = await fetch(feedUrl, {
+          method: "GET",
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            Accept: "application/rss+xml, application/xml, text/xml, */*",
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const xml = await response.text();
+          const parsed = await this.parser.parseString(xml);
+          items = (parsed.items ?? []) as ParsedFeedItem[];
+        } else {
+          this.logger.warn(
+            `Direct fetch returned HTTP ${response.status} for ${feedUrl}. Retrying with rss-parser.parseURL...`,
+          );
+          const parsed = await this.parser.parseURL(feedUrl);
+          items = (parsed.items ?? []) as ParsedFeedItem[];
+        }
+      } catch (fetchErr: any) {
+        this.logger.warn(
+          `Direct fetch failed for ${feedUrl} (${fetchErr.message}). Retrying with rss-parser.parseURL...`,
+        );
+        const parsed = await this.parser.parseURL(feedUrl);
+        items = (parsed.items ?? []) as ParsedFeedItem[];
       }
-
-      const xml = await response.text();
-      const parsed = await this.parser.parseString(xml);
-      const items = (parsed.items ?? []) as ParsedFeedItem[];
 
       let inserted = 0;
       let skipped = 0;
 
       for (const item of items) {
-        const articleUrl = item.link?.trim() || item.guid?.trim();
+        const rawLink = typeof item.link === "string" ? item.link : (item.link as any)?.$;
+        const rawGuid = typeof item.guid === "string" ? item.guid : (item.guid as any)?.$;
+        const articleUrl = (rawLink || rawGuid || "").trim();
+
         if (!articleUrl) {
           skipped += 1;
           continue;
@@ -105,6 +154,10 @@ export class RssProcessor extends WorkerHost {
         where: { id: feedId },
         data: { lastFetchedAt: new Date() },
       });
+
+      this.logger.log(
+        `Successfully ingested RSS feed ${feedId}: ${inserted} inserted, ${skipped} skipped.`,
+      );
 
       return { inserted, skipped, feedId, workspaceId };
     } catch (err: any) {

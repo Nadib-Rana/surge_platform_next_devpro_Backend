@@ -98,6 +98,8 @@ export class WorkspacesController {
   }
 
   @Patch(":workspaceId/queue-config")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
   async updateQueueConfig(
     @Param("workspaceId") workspaceId: string,
     @Body() dto: QueueConfigDto,
@@ -113,6 +115,8 @@ export class WorkspacesController {
   }
 
   @Patch(":workspaceId/auto-post")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
   async toggleAutoPost(
     @Param("workspaceId") workspaceId: string,
     @Body() dto: AutoPostToggleDto,

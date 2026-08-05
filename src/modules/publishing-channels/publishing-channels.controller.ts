@@ -7,11 +7,17 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { PublishingChannelsService } from "./publishing-channels.service";
 import { CreatePublishingChannelDto } from "./dto/create-publishing-channel.dto";
 import { UpdatePublishingChannelDto } from "./dto/update-publishing-channel.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles("admin", "customer")
 @Controller("publishing-channels")
 export class PublishingChannelsController {
   constructor(

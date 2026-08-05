@@ -892,8 +892,9 @@
                 "description": "Delete an RSS source. Pass force=true for hard delete."
               }
             }
-          },
-          {
+          ]
+        },
+        {
             "name": "Fetch Frequency & Dynamic BullMQ Schedules",
             "item": [
               {
@@ -1230,7 +1231,7 @@
               ],
               "body": {
                 "mode": "raw",
-                "raw": "{\n  \"name\": \"confident-postman\",\n  \"stepOneRawDraftPrompt\": {\n    \"title\": \"Step 1 Draft Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{articleContext}}\"\n  },\n  \"stepTwoPolishingPrompt\": {\n    \"title\": \"Step 2 Polish Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  },\n  \"stepThreeImagePrompt\": {\n    \"title\": \"Step 3 Image Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  }\n}"
+                "raw": "{\n  \"name\": \"confident-postman\",\n  \"stepGroupingPrompt\": {\n    \"title\": \"Grouping Prompt\",\n    \"systemPrompt\": \"You are an Article Grouping Bot.\",\n    \"template\": \"Analyze these articles and group them.\"\n  },\n  \"stepOneRawDraftPrompt\": {\n    \"title\": \"Step 1 Draft Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{articleContext}}\"\n  },\n  \"stepTwoPolishingPrompt\": {\n    \"title\": \"Step 2 Polish Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  },\n  \"stepThreeImagePrompt\": {\n    \"title\": \"Step 3 Image Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  },\n  \"stepCompanySocialPrompt\": {\n    \"title\": \"Company Social Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  },\n  \"stepPersonalSocialPrompt\": {\n    \"title\": \"Personal Social Prompt\",\n    \"systemPrompt\": \"System prompt instruction\",\n    \"template\": \"Template context: {{blogPostContent}}\"\n  }\n}"
               },
               "url": {
                 "raw": "{{baseUrl}}/tone-profiles",
@@ -1241,7 +1242,7 @@
                   "tone-profiles"
                 ]
               },
-              "description": "Creates a new tone profile along with its three step prompts (Admin Only)."
+              "description": "Creates a new tone profile along with its six step prompts (Admin Only)."
             }
           },
           {
@@ -1428,7 +1429,7 @@
                   ],
                   "body": {
                     "mode": "raw",
-                    "raw": "{\n  \"status\": \"scheduled\",\n  \"title\": \"Updated Draft Title\",\n  \"blogPostContent\": \"<p>Updated blog content</p>\",\n  \"socialPlainText\": \"Updated social text\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\",\n  \"hashtags\": [\"updated\", \"content\"],\n  \"seoTitle\": \"SEO Optimized Title\",\n  \"metaDescription\": \"A compelling meta description.\",\n  \"excerpt\": \"Short excerpt for cards\",\n  \"slug\": \"updated-draft-slug\"\n}"
+                    "raw": "{\n  \"status\": \"scheduled\",\n  \"title\": \"Updated Draft Title\",\n  \"blogPostContent\": \"<p>Updated blog content</p>\",\n  \"socialPlainText\": \"Updated social text\",\n  \"imageUrl\": \"{{minioAssetUrl}}\",\n  \"imageProvider\": \"openai\",\n  \"hashtags\": [\"updated\", \"content\"],\n  \"seoTitle\": \"SEO Optimized Title\",\n  \"metaDescription\": \"A compelling meta description.\",\n  \"excerpt\": \"Short excerpt for cards\",\n  \"slug\": \"updated-draft-slug\",\n  \"rawContent\": \"<p>Raw written content</p>\",\n  \"polishedContent\": \"<p>Polished content</p>\",\n  \"companySocialPost\": \"Corporate share copy\",\n  \"personalSocialPost\": \"Founder share copy\",\n  \"imageConcept\": \"New Yorker cartoon drawing prompt\",\n  \"negativeConstraints\": \"color, photo\",\n  \"imageCaption\": \"Witty cartoon caption\"\n}"
                   },
                   "url": {
                     "raw": "{{baseUrl}}/generated-drafts/{{generatedDraftId}}",

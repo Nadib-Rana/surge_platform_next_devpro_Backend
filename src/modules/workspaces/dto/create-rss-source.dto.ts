@@ -1,10 +1,19 @@
-import { IsUrl, IsNotEmpty, IsOptional } from "class-validator";
+import { IsOptional, IsString } from "class-validator";
 
 export class CreateRssSourceDto {
-  @IsNotEmpty()
-  @IsUrl({}, { message: "feedUrl must be a valid URL" })
-  feedUrl: string;
+  @IsOptional()
+  @IsString()
+  feedUrl?: string;
 
   @IsOptional()
+  @IsString()
+  url?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 }

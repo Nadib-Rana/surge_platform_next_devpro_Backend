@@ -44,16 +44,16 @@ export class ToneProfilesController {
   }
 
   @Post()
-  @Roles("admin")
-  @ApiOperation({ summary: "Create a new tone profile with prompts (Admin Only)" })
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Create a new tone profile" })
   @ApiOkResponse({ description: "Tone profile created successfully" })
   create(@Body() createToneProfileDto: CreateToneProfileDto) {
     return this.toneProfilesService.create(createToneProfileDto);
   }
 
   @Patch(":id")
-  @Roles("admin")
-  @ApiOperation({ summary: "Update a tone profile and its prompts (Admin Only)" })
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Update a tone profile" })
   @ApiOkResponse({ description: "Tone profile updated successfully" })
   update(
     @Param("id") id: string,

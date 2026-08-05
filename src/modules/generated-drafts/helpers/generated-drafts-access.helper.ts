@@ -22,6 +22,13 @@ export interface DraftRecord {
   socialPlainText: string | null;
   imageUrl: string | null;
   imageProvider: string | null;
+  rawContent?: string | null;
+  polishedContent?: string | null;
+  companySocialPost?: string | null;
+  personalSocialPost?: string | null;
+  imageConcept?: string | null;
+  negativeConstraints?: string | null;
+  imageCaption?: string | null;
   editorState?: Prisma.JsonValue | null;
   generationType: string;
   status: string;

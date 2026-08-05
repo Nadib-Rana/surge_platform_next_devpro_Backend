@@ -56,6 +56,15 @@ export class CompaniesController {
     return this.companiesService.findAll(user);
   }
 
+  @Get("me")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin", "customer")
+  @ApiOperation({ summary: "Get current user company" })
+  @ApiResponse({ status: 200, description: "Company returned successfully" })
+  findMine(@GetUser() user: AuthenticatedUser) {
+    return this.companiesService.findMine(user);
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("admin", "customer")

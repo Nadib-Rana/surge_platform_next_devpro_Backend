@@ -7,10 +7,16 @@ import {
   Delete,
   Query,
   Patch,
+  UseGuards,
 } from "@nestjs/common";
 import { RssSourcesService } from "./rss-sources.service";
 import { CreateRssSourceDto } from "./dto/create-rss-source.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { RolesGuard } from "../auth/guards/roles.guard";
+import { Roles } from "../auth/decorators/roles.decorator";
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles("admin", "customer")
 @Controller("workspaces/:workspaceId/rss-sources")
 export class RssSourcesController {
   constructor(private readonly rssService: RssSourcesService) {}
@@ -53,5 +59,13 @@ export class RssSourcesController {
   ) {
     const hard = force === "true";
     return this.rssService.remove(workspaceId, sourceId, hard);
+  }
+
+  @Post(":sourceId/scrape")
+  scrape(
+    @Param("workspaceId") workspaceId: string,
+    @Param("sourceId") sourceId: string,
+  ) {
+    return this.rssService.triggerScrape(workspaceId, sourceId);
   }
 }

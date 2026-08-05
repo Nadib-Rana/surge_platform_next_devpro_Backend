@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Param, Query, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { OAuthService } from "./oauth.service";
 
 @Controller("publishing-channels/oauth")
@@ -9,15 +10,18 @@ export class OAuthController {
   getAuthorizeUrl(
     @Param("platform") platform: string,
     @Query("workspaceId") workspaceId: string,
+    @Res() res: Response,
   ) {
-    return this.oauthService.getAuthorizeUrl(platform, workspaceId);
+    const authData = this.oauthService.getAuthorizeUrl(platform, workspaceId);
+    return res.redirect(authData.url);
   }
 
   @Get(":platform/callback")
-  handleCallback(
+  async handleCallback(
     @Param("platform") platform: string,
     @Query("code") code: string,
-    @Query("state") state?: string,
+    @Query("state") state: string,
+    @Res() res: Response,
   ) {
     let workspaceId = "";
     if (state) {
@@ -31,6 +35,19 @@ export class OAuthController {
       }
     }
 
-    return this.oauthService.handleCallback(platform, code, workspaceId);
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    try {
+      await this.oauthService.handleCallback(platform, code, workspaceId);
+      return res.redirect(
+        `${frontendUrl}/dashboard/settings?connected=${platform}`,
+      );
+    } catch (err: any) {
+      return res.redirect(
+        `${frontendUrl}/dashboard/settings?error=${encodeURIComponent(
+          err.message || "OAuth failed",
+        )}`,
+      );
+    }
   }
 }

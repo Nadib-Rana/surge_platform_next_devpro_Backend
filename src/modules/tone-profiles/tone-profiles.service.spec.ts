@@ -10,9 +10,12 @@ describe("ToneProfilesService", () => {
   const mockToneProfile = {
     id: "tp-1",
     name: "confident",
+    stepGroupingPrompt: { title: "PG", systemPrompt: "SG", template: "TG" },
     stepOneRawDraftPrompt: { title: "P1", systemPrompt: "S1", template: "T1" },
     stepTwoPolishingPrompt: { title: "P2", systemPrompt: "S2", template: "T2" },
     stepThreeImagePrompt: { title: "P3", systemPrompt: "S3", template: "T3" },
+    stepCompanySocialPrompt: { title: "PC", systemPrompt: "SC", template: "TC" },
+    stepPersonalSocialPrompt: { title: "PS", systemPrompt: "SS", template: "TS" },
   };
 
   beforeEach(async () => {
@@ -24,9 +27,12 @@ describe("ToneProfilesService", () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      stepGroupingPrompt: { create: jest.fn(), upsert: jest.fn() },
       stepOneRawDraftPrompt: { create: jest.fn(), upsert: jest.fn() },
       stepTwoPolishingPrompt: { create: jest.fn(), upsert: jest.fn() },
       stepThreeImagePrompt: { create: jest.fn(), upsert: jest.fn() },
+      stepCompanySocialPrompt: { create: jest.fn(), upsert: jest.fn() },
+      stepPersonalSocialPrompt: { create: jest.fn(), upsert: jest.fn() },
       $transaction: jest.fn((cb) => cb(prisma)),
     };
 
@@ -71,17 +77,23 @@ describe("ToneProfilesService", () => {
   describe("create", () => {
     const createDto = {
       name: "happy",
+      stepGroupingPrompt: { title: "PG", systemPrompt: "SG", template: "TG" },
       stepOneRawDraftPrompt: { title: "P1", systemPrompt: "S1", template: "T1" },
       stepTwoPolishingPrompt: { title: "P2", systemPrompt: "S2", template: "T2" },
       stepThreeImagePrompt: { title: "P3", systemPrompt: "S3", template: "T3" },
+      stepCompanySocialPrompt: { title: "PC", systemPrompt: "SC", template: "TC" },
+      stepPersonalSocialPrompt: { title: "PS", systemPrompt: "SS", template: "TS" },
     };
 
     it("should create a tone profile and nested prompts", async () => {
       prisma.toneProfile.findUnique.mockResolvedValue(null);
       prisma.toneProfile.create.mockResolvedValue({ id: "tp-2", name: "happy" });
+      prisma.stepGroupingPrompt.create.mockResolvedValue({ id: "sg" });
       prisma.stepOneRawDraftPrompt.create.mockResolvedValue({ id: "s1" });
       prisma.stepTwoPolishingPrompt.create.mockResolvedValue({ id: "s2" });
       prisma.stepThreeImagePrompt.create.mockResolvedValue({ id: "s3" });
+      prisma.stepCompanySocialPrompt.create.mockResolvedValue({ id: "sc" });
+      prisma.stepPersonalSocialPrompt.create.mockResolvedValue({ id: "ss" });
 
       const res = await service.create(createDto);
       expect(res.name).toBe("happy");

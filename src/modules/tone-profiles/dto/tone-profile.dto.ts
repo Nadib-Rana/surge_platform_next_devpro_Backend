@@ -39,6 +39,11 @@ export class CreateToneProfileDto {
   @ApiProperty({ type: PromptConfigDto })
   @ValidateNested()
   @Type(() => PromptConfigDto)
+  stepGroupingPrompt: PromptConfigDto;
+
+  @ApiProperty({ type: PromptConfigDto })
+  @ValidateNested()
+  @Type(() => PromptConfigDto)
   stepOneRawDraftPrompt: PromptConfigDto;
 
   @ApiProperty({ type: PromptConfigDto })
@@ -50,6 +55,16 @@ export class CreateToneProfileDto {
   @ValidateNested()
   @Type(() => PromptConfigDto)
   stepThreeImagePrompt: PromptConfigDto;
+
+  @ApiProperty({ type: PromptConfigDto })
+  @ValidateNested()
+  @Type(() => PromptConfigDto)
+  stepCompanySocialPrompt: PromptConfigDto;
+
+  @ApiProperty({ type: PromptConfigDto })
+  @ValidateNested()
+  @Type(() => PromptConfigDto)
+  stepPersonalSocialPrompt: PromptConfigDto;
 }
 
 export class UpdatePromptConfigDto {
@@ -84,6 +99,12 @@ export class UpdateToneProfileDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => UpdatePromptConfigDto)
+  stepGroupingPrompt?: UpdatePromptConfigDto;
+
+  @ApiPropertyOptional({ type: UpdatePromptConfigDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdatePromptConfigDto)
   stepOneRawDraftPrompt?: UpdatePromptConfigDto;
 
   @ApiPropertyOptional({ type: UpdatePromptConfigDto })
@@ -97,4 +118,16 @@ export class UpdateToneProfileDto {
   @ValidateNested()
   @Type(() => UpdatePromptConfigDto)
   stepThreeImagePrompt?: UpdatePromptConfigDto;
+
+  @ApiPropertyOptional({ type: UpdatePromptConfigDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdatePromptConfigDto)
+  stepCompanySocialPrompt?: UpdatePromptConfigDto;
+
+  @ApiPropertyOptional({ type: UpdatePromptConfigDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => UpdatePromptConfigDto)
+  stepPersonalSocialPrompt?: UpdatePromptConfigDto;
 }

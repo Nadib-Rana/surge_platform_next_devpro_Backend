@@ -40,6 +40,14 @@ export class CompaniesService {
     });
   }
 
+  async findMine(user: AuthenticatedUser) {
+    const company = await this.prisma.company.findFirst({
+      where: { ownerId: user.userId },
+      orderBy: { createdAt: "desc" },
+    });
+    return company || null;
+  }
+
   async findOne(id: string, user: AuthenticatedUser) {
     const company = await this.prisma.company.findUnique({
       where: { id },

@@ -2,11 +2,15 @@ export interface QueueConfig {
   autoPost?: boolean;
   fetchFrequencyHours?: number;
   postingTimes?: string[];
+  name?: string;
+  targetAudience?: string;
+  brandVoice?: string;
+  editorialRules?: string[];
 }
 
 export function mergeQueueConfig(
   currentConfig: QueueConfig | null | undefined,
-  newConfig: QueueConfig,
+  newConfig: Partial<QueueConfig>,
 ): QueueConfig {
   const existing = currentConfig ?? {};
   return {

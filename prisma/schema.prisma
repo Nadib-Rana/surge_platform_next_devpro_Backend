@@ -122,6 +122,7 @@ model Workspace {
   rawPostsBuffer     RawPostsBuffer[]
   generatedDrafts    GeneratedDraft[]
   publishingChannels PublishingChannel[]
+  articleGroups      ArticleGroup[]
 
   @@map("workspaces")
 }
@@ -170,9 +171,12 @@ model RawPostsBuffer {
   qualityScore Int?     @map("quality_score")
   status      String    @map("status") // buffered, processing, discarded, ready
   createdAt   DateTime  @default(now()) @map("created_at")
+  sourceName  String?   @map("source_name")
+  groupId     String?   @db.Uuid @map("group_id")
 
   // Relations
   generatedDrafts GeneratedDraft[]
+  articleGroup    ArticleGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@map("raw_posts_buffer")
 }
@@ -196,6 +200,14 @@ model GeneratedDraft {
   imageUrl             String?       @map("image_url")
   imageProvider        String?       @map("image_provider") // openai, midjourney, ideogram
   editorState          Json?         @map("editor_state") // title, excerpt, slug, hashtags, seo metadata, etc.
+  rawContent           String?       @db.Text @map("raw_content")
+  polishedContent      String?       @db.Text @map("polished_content")
+  companySocialPost    String?       @db.Text @map("company_social_post")
+  personalSocialPost   String?       @db.Text @map("personal_social_post")
+  imageConcept         String?       @db.Text @map("image_concept")
+  negativeConstraints  String?       @db.Text @map("negative_constraints")
+  imageCaption         String?       @map("image_caption")
+  groupId              String?       @db.Uuid @map("group_id")
 
   // Scheduling & Campaign Type
   generationType       String        @default("auto_cron") @map("generation_type") // auto_cron, manual_on_demand, batch_digest
@@ -205,6 +217,7 @@ model GeneratedDraft {
 
   // Relations
   publishedLogs PublishedPostsLog[]
+  group                ArticleGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId])
   @@index([toneProfileId])
@@ -293,16 +306,33 @@ model SystemLog {
 }
 
 model ToneProfile {
-  id                     String                  @id @default(uuid()) @db.Uuid
-  name                   String                  @unique @map("name")
-  createdAt              DateTime                @default(now()) @map("created_at")
-  updatedAt              DateTime                @updatedAt @map("updated_at")
-  stepOneRawDraftPrompt  StepOneRawDraftPrompt?
-  stepTwoPolishingPrompt StepTwoPolishingPrompt?
-  stepThreeImagePrompt   StepThreeImagePrompt?
-  generatedDrafts        GeneratedDraft[]
+  id                      String                   @id @default(uuid()) @db.Uuid
+  name                    String                   @unique @map("name")
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  stepGroupingPrompt      StepGroupingPrompt?
+  stepOneRawDraftPrompt   StepOneRawDraftPrompt?
+  stepTwoPolishingPrompt  StepTwoPolishingPrompt?
+  stepThreeImagePrompt    StepThreeImagePrompt?
+  stepCompanySocialPrompt StepCompanySocialPrompt?
+  stepPersonalSocialPrompt StepPersonalSocialPrompt?
+  generatedDrafts         GeneratedDraft[]
 
   @@map("tone_profiles")
+}
+
+model StepGroupingPrompt {
+  id            String      @id @default(uuid()) @db.Uuid
+  toneProfileId String      @unique @map("tone_profile_id") @db.Uuid
+  toneProfile   ToneProfile @relation(fields: [toneProfileId], references: [id], onDelete: Cascade)
+  title         String      @map("title")
+  systemPrompt  String      @db.Text @map("system_prompt")
+  template      String      @db.Text @map("template")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("step_grouping_prompts")
 }
 
 model StepOneRawDraftPrompt {
@@ -345,4 +375,50 @@ model StepThreeImagePrompt {
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
   @@map("step_three_image_prompts")
+}
+
+model StepCompanySocialPrompt {
+  id            String      @id @default(uuid()) @db.Uuid
+  toneProfileId String      @unique @map("tone_profile_id") @db.Uuid
+  toneProfile   ToneProfile @relation(fields: [toneProfileId], references: [id], onDelete: Cascade)
+  title         String      @map("title")
+  systemPrompt  String      @db.Text @map("system_prompt")
+  template      String      @db.Text @map("template")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("step_company_social_prompts")
+}
+
+model StepPersonalSocialPrompt {
+  id            String      @id @default(uuid()) @db.Uuid
+  toneProfileId String      @unique @map("tone_profile_id") @db.Uuid
+  toneProfile   ToneProfile @relation(fields: [toneProfileId], references: [id], onDelete: Cascade)
+  title         String      @map("title")
+  systemPrompt  String      @db.Text @map("system_prompt")
+  template      String      @db.Text @map("template")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("step_personal_social_prompts")
+}
+
+model ArticleGroup {
+  id             String           @id @default(uuid()) @db.Uuid
+  workspaceId    String           @db.Uuid @map("workspace_id")
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sharedTheme    String           @map("shared_theme")
+  editorialAngle String           @db.Text @map("editorial_angle")
+  articleUrls    String[]         @map("article_urls")
+  articleTitles  String[]         @map("article_titles")
+  articleSources String[]         @map("article_sources")
+  articleCount   Int              @map("article_count")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  
+  rawPosts       RawPostsBuffer[]
+  generatedDraft GeneratedDraft[]
+
+  @@map("article_groups")
 }

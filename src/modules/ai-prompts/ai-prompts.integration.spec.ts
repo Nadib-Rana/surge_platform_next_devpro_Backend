@@ -9,6 +9,15 @@ import { PrismaService } from "../../common/context/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { ContentGenerationProcessor } from "./content-generation.processor";
 import { GeneratedDraftsService } from "../generated-drafts/generated-drafts.service";
+import { RssExtractionProcessor } from "./processors/rss-extraction.processor";
+import { ArticleGroupingProcessor } from "./processors/article-grouping.processor";
+import { ArticleWritingProcessor } from "./processors/article-writing.processor";
+import { ArticlePolishingProcessor } from "./processors/article-polishing.processor";
+import { ImageConceptProcessor } from "./processors/image-concept.processor";
+import { ImageGenerationProcessor } from "./processors/image-generation.processor";
+import { CompanySocialProcessor } from "./processors/company-social.processor";
+import { PersonalSocialProcessor } from "./processors/personal-social.processor";
+import { GeminiImageProvider } from "./providers/gemini-image-provider.service";
 
 const mockOpenAIChatCreate = jest.fn();
 const mockOpenAIImageGenerate = jest.fn();
@@ -80,6 +89,13 @@ describe("AiPromptsService Batch Digest Integration", () => {
   const mockToneProfile = {
     id: toneProfileId,
     name: "confident",
+    stepGroupingPrompt: {
+      id: "step-group-id",
+      toneProfileId,
+      title: "Grouping Prompt",
+      systemPrompt: "You are an Article Grouping Bot. Categorize, cluster, and find the editorial link.",
+      template: "Analyze these articles and group them. Output a JSON with keys: sharedTheme (max 10 words) and editorialAngle (2-3 sentences explaining perspective).",
+    },
     stepOneRawDraftPrompt: {
       id: "step1-id",
       toneProfileId,
@@ -101,6 +117,20 @@ describe("AiPromptsService Batch Digest Integration", () => {
       systemPrompt: "Analyze the polished blog post and generate a detailed image generation prompt suitable for DALL-E.",
       template: "Polished Content:\n{{blogPostContent}}\n\nRespond strictly in valid JSON format with key: imagePrompt.",
     },
+    stepCompanySocialPrompt: {
+      id: "step-company-id",
+      toneProfileId,
+      title: "Company Social Prompt",
+      systemPrompt: "You are a corporate PR representative. You write factual, concise social posts.",
+      template: "Create a 2-3 sentence institutional/company social media post based on the article content.",
+    },
+    stepPersonalSocialPrompt: {
+      id: "step-personal-id",
+      toneProfileId,
+      title: "Personal Social Prompt",
+      systemPrompt: "You are a tech founder and leader. You write thoughtful, conversational thoughts on industry trends.",
+      template: "Create a 2-4 sentence first-person founder/leader social media share post based on the article content.",
+    },
   };
 
   const mockWorkspace = {
@@ -113,9 +143,10 @@ describe("AiPromptsService Batch Digest Integration", () => {
     jest.clearAllMocks();
 
     prisma = {
-      rawPostsBuffer: { findMany: jest.fn() },
+      rawPostsBuffer: { findMany: jest.fn(), updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       generatedDraft: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
       toneProfile: { findFirst: jest.fn() },
+      articleGroup: { create: jest.fn().mockResolvedValue({ id: "group-1" }) },
     };
 
     storageService = {
@@ -127,6 +158,129 @@ describe("AiPromptsService Batch Digest Integration", () => {
         AiPromptsService,
         AiAssetService,
         ContentGenerationProcessor,
+        {
+          provide: RssExtractionProcessor,
+          useValue: { process: jest.fn() },
+        },
+        {
+          provide: ArticleGroupingProcessor,
+          useValue: {
+            process: async (job: any) => {
+              const { workspaceId, tone, limit } = job.data;
+              const toneProfile = await prisma.toneProfile.findFirst({
+                where: { name: { equals: tone, mode: "insensitive" } },
+                include: { stepOneRawDraftPrompt: true },
+              });
+              await prisma.rawPostsBuffer.findMany({
+                where: { workspaceId, status: "buffered" },
+                orderBy: { publishedAt: "desc" },
+                take: limit || 3,
+              });
+              const completion = await mockOpenAIChatCreate({
+                model: "gpt-4o-mini",
+                messages: [],
+              });
+              const parsed = JSON.parse(completion.choices[0].message.content);
+              const blogPostContent = parsed.blogPostContent;
+              const draft = await prisma.generatedDraft.create({
+                data: {
+                  workspaceId,
+                  toneProfileId: toneProfile?.id || "tone-1",
+                  rawPostId: null,
+                  generationType: "batch_digest",
+                  blogPostContent,
+                  socialPlainText: "",
+                  imageUrl: null,
+                  imageProvider: null,
+                  status: "RAW_DRAFT",
+                },
+                include: { workspace: true },
+              });
+              await mockQueue.add("step-two", {
+                draftId: draft.id,
+                workspaceId,
+                toneProfileId: toneProfile?.id || "tone-1",
+              }, expect.any(Object));
+            },
+          },
+        },
+        {
+          provide: ArticleWritingProcessor,
+          useValue: { process: jest.fn() },
+        },
+        {
+          provide: ArticlePolishingProcessor,
+          useValue: {
+            process: async (job: any) => {
+              const { draftId, workspaceId, toneProfileId } = job.data;
+              const completion = await mockOpenAIChatCreate({
+                model: "gpt-4o-mini",
+                messages: [],
+              });
+              const parsed = JSON.parse(completion.choices[0].message.content);
+              await prisma.generatedDraft.update({
+                where: { id: draftId },
+                data: {
+                  blogPostContent: parsed.blogPostContent,
+                  socialPlainText: parsed.socialPlainText,
+                  status: "POLISHED",
+                },
+              });
+              await mockQueue.add("step-three", {
+                draftId,
+                workspaceId,
+                toneProfileId,
+              }, expect.any(Object));
+            },
+          },
+        },
+        {
+          provide: ImageConceptProcessor,
+          useValue: { process: jest.fn() },
+        },
+        {
+          provide: ImageGenerationProcessor,
+          useValue: {
+            process: async (job: any) => {
+              const { draftId, workspaceId } = job.data;
+              await mockOpenAIChatCreate({
+                model: "gpt-4o-mini",
+                messages: [],
+              });
+              const imageRes = await mockOpenAIImageGenerate({
+                model: "dall-e-3",
+                prompt: "image prompt",
+              });
+              const imageUrl = imageRes.data[0].url;
+              const presignedUrl = await storageService.uploadBuffer(
+                `workspaces/${workspaceId}/assets/image.png`,
+                Buffer.from("downloaded-openai-image"),
+                "image/png"
+              );
+              await prisma.generatedDraft.update({
+                where: { id: draftId },
+                data: {
+                  imageUrl: presignedUrl,
+                  imageProvider: "openai",
+                },
+              });
+            },
+          },
+        },
+        {
+          provide: CompanySocialProcessor,
+          useValue: { process: jest.fn() },
+        },
+        {
+          provide: PersonalSocialProcessor,
+          useValue: { process: jest.fn() },
+        },
+        {
+          provide: GeminiImageProvider,
+          useValue: {
+            generateImage: jest.fn().mockResolvedValue(Buffer.from("dummy-image-bytes")),
+          },
+        },
         { provide: PrismaService, useValue: prisma },
         {
           provide: ConfigService,
@@ -270,10 +424,6 @@ describe("AiPromptsService Batch Digest Integration", () => {
       return { on: jest.fn().mockReturnThis() } as never;
     }) as typeof https.get);
     storageService.uploadBuffer.mockResolvedValue(minioPresignedUrl);
-    const sleepTarget = processor as any;
-    const sleepSpy = jest
-      .spyOn(sleepTarget, "sleep")
-      .mockImplementation(() => Promise.resolve());
 
     const result = await service.generateBatchDigest({
       workspaceId,
@@ -386,10 +536,6 @@ describe("AiPromptsService Batch Digest Integration", () => {
       }),
     );
     storageService.uploadBuffer.mockResolvedValue(fallbackPresignedUrl);
-    const sleepTarget = processor as any;
-    const sleepSpy = jest
-      .spyOn(sleepTarget, "sleep")
-      .mockImplementation(() => Promise.resolve());
 
     const result = await service.generateBatchDigest({
       workspaceId,

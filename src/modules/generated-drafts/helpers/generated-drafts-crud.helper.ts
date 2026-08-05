@@ -87,7 +87,14 @@ export async function updateDraft(
     input.imageUrl !== undefined ||
     input.title !== undefined ||
     input.excerpt !== undefined ||
-    input.hashtags !== undefined;
+    input.hashtags !== undefined ||
+    input.rawContent !== undefined ||
+    input.polishedContent !== undefined ||
+    input.companySocialPost !== undefined ||
+    input.personalSocialPost !== undefined ||
+    input.imageConcept !== undefined ||
+    input.negativeConstraints !== undefined ||
+    input.imageCaption !== undefined;
 
   const nextStatus = resolveUpdatedStatus(draft.status, dto, hasContentChanges);
 
@@ -98,6 +105,13 @@ export async function updateDraft(
       socialPlainText: input.socialPlainText ?? draft.socialPlainText,
       imageUrl: input.imageUrl ?? draft.imageUrl,
       imageProvider: input.imageProvider ?? draft.imageProvider,
+      rawContent: input.rawContent ?? draft.rawContent,
+      polishedContent: input.polishedContent ?? draft.polishedContent,
+      companySocialPost: input.companySocialPost ?? draft.companySocialPost,
+      personalSocialPost: input.personalSocialPost ?? draft.personalSocialPost,
+      imageConcept: input.imageConcept ?? draft.imageConcept,
+      negativeConstraints: input.negativeConstraints ?? draft.negativeConstraints,
+      imageCaption: input.imageCaption ?? draft.imageCaption,
       editorState: nextEditorState as Prisma.InputJsonValue,
       status: nextStatus,
     },

@@ -84,10 +84,16 @@
 * [x] **Multi-Provider LLM Circuit Breaker Fallback:** `generateLlmCompletion` হেল্পারে Anthropic (`claude-3-5-sonnet-20241022`) প্রাইমারি এআই প্রোভাইডার হিসেবে সেট করা হয়েছে এবং এতে robust try...catch failover মেকানিজম যুক্ত করা হয়েছে যা Anthropic ব্যর্থ হলে স্বয়ংক্রিয়ভাবে OpenAI (`gpt-4o`) এ সুইচ করে এবং সব ব্যর্থ হলে Local Rule-based synthesizer এ সুইচ করে।
 * [x] **Robust Structured JSON Output Parser & Renaming:** WordPress-নির্দিষ্ট কলামের নাম পরিবর্তন করে প্ল্যাটফর্ম-নিরপেক্ষ `blogPostContent` (DB: `blog_post_content`) করা হয়েছে এবং `parseBatchDigestContent()` এ dynamic fallback সহ generic key পার্সিং সুনিশ্চিত করা হয়েছে।
 * [x] **Perspective API Toxicity check:** raw articles-এর content safety ও toxicity ফিল্টারিং করার জন্য Perspective API check ইন্টিগ্রেট করা হয়েছে (with dynamic local fallback checks)।
-* [x] **3-Step AI Pipeline & Database Lifecycle:** complete database-backed 3-step AI pipeline ইমপ্লিমেন্ট করা হয়েছে:
-  - **Step 1 (RAW_DRAFT):** Raw articles থেকে primary content draft তৈরি করে `RAW_DRAFT` স্ট্যাটাসে সেভ করে।
-  - **Step 2 (POLISHED):** Raw draft থেকে polished blog content ও social copy জেনারেট করে `POLISHED` স্ট্যাটাসে আপডেট করে।
-  - **Step 3 (READY_FOR_REVIEW):** Polished post থেকে image prompt ও DALL-E image জেনারেট করে `READY_FOR_REVIEW` স্ট্যাটাসে সেভ করে auto-posting এ নিয়ে যায়।
+* [x] **8-Step Sequential AI Pipeline & Database Lifecycle (Fully Dynamic Overrides):** কাস্টম ডাটাবেস-ব্যাকড ৮-ধাপের সিকোয়েন্সিয়াল এআই পাইপলাইন ইমপ্লিমেন্ট করা হয়েছে এবং পাইপলাইনের ৬টি এআই-ভিত্তিক পদক্ষেপেরই প্রম্পটগুলো এখন সম্পূর্ণ ডায়নামিক ও কাস্টমাইজড `ToneProfile` থেকে লোড করা যায়।
+  - **Step 1 (RSS Ingestion/Extraction):** আরএসএস আইটেম থেকে Title, URL এবং sourceName এক্সট্রাক্ট করে raw buffer-এ সেভ করে।
+  - **Step 2 (Article Grouping Bot):** buffered আর্টিকেলগুলো ফিল্টার করে ২-১৫টি গ্রুপ তৈরি করে এবং shared theme ও editorial angle বের করে।
+  - **Step 3 (Article Writing Bot):** গ্রুপ থিম থেকে ৮০০-১২০০ শব্দের HTML/Markdown ব্লগ আর্টিকেল তৈরি করে `rawContent`-এ সেভ করে।
+  - **Step 4 (Article Polishing Bot):** AI শব্দ দূর করে এবং `hyperlink-validator` দিয়ে hyperlinks অক্ষত রেখে polished content জেনারেট করে `polishedContent`-এ সেভ করে।
+  - **Step 5 (Image Concept Bot):** আর্টিকেল রিড করে New Yorker cartoon concept (Negative Constraints, witty caption ও description) জেনারেট করে।
+  - **Step 6 (Image Generation Bot):** Gemini/Imagen 3 API ব্যবহার করে temp 0.4 এ visual assets জেনারেট করে storage-এ আপলোড করে।
+  - **Step 7 (Company Social Bot):** factual, emoji-free এবং link-free ২-৩ সেন্টেন্সের প্রাতিষ্ঠানিক সোশ্যাল কপি জেনারেট করে।
+  - **Step 8 (Personal Social Bot):** ফার্স্ট-পারসন টোনে ২-৪ সেন্টেন্সের founder perspective সোশ্যাল কপি জেনারেট করে ড্রাফটকে `READY_FOR_REVIEW` স্ট্যাটাসে নেয়।
+* [x] **Strict Hyperlink Preservation Validator:** পোলিশিং ধাপে কোনো হাইপারলিঙ্ক যেন পরিবর্তন বা বাদ না পড়ে তা DOM-based regex চেকের মাধ্যমে ১০০% নিশ্চিত করা হয়েছে।
 * [x] **Unified ToneProfile prompts grouping:** `schema.prisma` এ `ToneProfile` প্যারেন্ট মডেল যুক্ত করা হয়েছে এবং এর অধীনে `StepOneRawDraftPrompt`, `StepTwoPolishingPrompt`, এবং `StepThreeImagePrompt` তিনটি চাইল্ড প্রম্পটকে 1-to-1 রিলেশনের মাধ্যমে গ্রুপ করা হয়েছে।
 * [x] **BullMQ Background Content Generation Queue:** API execution কে background-এ অফলোড করার জন্য `content-generation-queue` তৈরি করা হয়েছে, যা client request-এ তাত্ক্ষণিকভাবে immediate response দেয় এবং configurable delay সহ step-by-step queue execution নিশ্চিত করে।
 * [x] **Sequential AI Chaining & Prompt Templates:** dynamic templates (Tone, Audience, previous outputs) ব্যবহার করে ৩-ধাপে sequential chaining workflow ব্যাকএন্ডে এস্টাবলিশ করা হয়েছে।
@@ -161,7 +167,7 @@
 ## 🟩 Module 4.5: Tone Profiles Admin Management `[STATUS: 100% COMPLETE]`
 
 * [x] **ToneProfiles CRUD Controller & Service:** `ToneProfilesController` এবং `ToneProfilesService` তৈরি করা হয়েছে যা `GET /tone-profiles`, `GET /tone-profiles/:id`, `POST /tone-profiles`, `PATCH /tone-profiles/:id`, এবং `DELETE /tone-profiles/:id` এন্ডপয়েন্ট এক্সপোজ করে। `POST`/`PATCH`/`DELETE` শুধুমাত্র Admin Role-এর জন্য সীমাবদ্ধ (`JwtAuthGuard` + `RolesGuard`)।
-* [x] **Transactional Nested Prompt Creation:** `Prisma.$transaction` ব্যবহার করে `ToneProfile` তৈরির সাথে সাথে `StepOneRawDraftPrompt`, `StepTwoPolishingPrompt`, এবং `StepThreeImagePrompt` — তিনটি চাইল্ড প্রম্পট একটি atomic transaction-এ তৈরি হয়। ডুপ্লিকেট নেম চেক এবং upsert সাপোর্ট রয়েছে।
+* [x] **Transactional Nested Prompt Creation (Expanded to 6 Prompts):** `Prisma.$transaction` ব্যবহার করে `ToneProfile` তৈরির সাথে সাথে ৬টি চাইল্ড প্রম্পট (Grouping, Writing/Step-One, Polishing/Step-Two, Image-Concept/Step-Three, Company Social, Personal Social) একটি atomic transaction-এ তৈরি ও সিঙ্ক হয়। ডুপ্লিকেট নেম চেক এবং upsert সাপোর্ট রয়েছে।
 * [x] **DTO Validation:** `class-validator` ও `class-transformer` দিয়ে `CreateToneProfileDto` এবং `UpdateToneProfileDto` ভ্যালিডেশন যুক্ত করা হয়েছে নেস্টেড প্রম্পট কনফিগারেশন সহ।
 * [x] **Unit Tests & Postman Sync:** `tone-profiles.service.spec.ts` ও `tone-profiles.controller.spec.ts` ইউনিট টেস্ট এবং Postman collection-এ "Module 4.5: Tone Profiles Management" ফোল্ডারে সব রিকোয়েস্ট যুক্ত করা হয়েছে।
 

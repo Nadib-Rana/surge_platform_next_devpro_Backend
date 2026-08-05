@@ -5,8 +5,12 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { StorageService } from "../storage/storage.service";
-import https from "https";
 import OpenAI from "openai";
+import {
+  createFallbackPngBuffer,
+  formatError,
+  downloadToBuffer,
+} from "./helpers/asset-download.helper";
 
 @Injectable()
 export class AiAssetService {
@@ -64,16 +68,16 @@ export class AiAssetService {
       this.logger.log(
         `OpenAI image created; downloading generated asset (workspaceId=${dto.workspaceId}, model=${model})`,
       );
-      buffer = await this.downloadToBuffer(imageUrl);
+      buffer = await downloadToBuffer(imageUrl);
       this.logger.log(
         `Generated image downloaded (workspaceId=${dto.workspaceId}, bytes=${buffer.length})`,
       );
     } catch (error) {
       usedFallback = true;
       this.logger.warn(
-        `OpenAI image generation failed; using fallback PNG (workspaceId=${dto.workspaceId}, model=${model}, issue=${this.formatError(error)})`,
+        `OpenAI image generation failed; using fallback PNG (workspaceId=${dto.workspaceId}, model=${model}, issue=${formatError(error)})`,
       );
-      buffer = this.createFallbackPngBuffer();
+      buffer = createFallbackPngBuffer();
     }
 
     const objectName = `workspaces/${dto.workspaceId}/assets/${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
@@ -91,7 +95,7 @@ export class AiAssetService {
       );
     } catch (error) {
       this.logger.error(
-        `Image asset upload failed (workspaceId=${dto.workspaceId}, objectName=${objectName}, issue=${this.formatError(error)})`,
+        `Image asset upload failed (workspaceId=${dto.workspaceId}, objectName=${objectName}, issue=${formatError(error)})`,
       );
       throw error;
     }
@@ -108,63 +112,5 @@ export class AiAssetService {
       provider: "openai",
       usedFallback,
     };
-  }
-
-  private createFallbackPngBuffer() {
-    return Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
-      "base64",
-    );
-  }
-
-  private formatError(error: unknown) {
-    if (error && typeof error === "object") {
-      const details = error as {
-        message?: unknown;
-        status?: unknown;
-        code?: unknown;
-        type?: unknown;
-        request_id?: unknown;
-      };
-      const parts = [
-        ["message", details.message],
-        ["status", details.status],
-        ["code", details.code],
-        ["type", details.type],
-        ["requestId", details.request_id],
-      ]
-        .filter((entry) => entry[1] !== undefined && entry[1] !== null)
-        .map(([key, value]) => `${key}=${String(value)}`);
-
-      if (parts.length) {
-        return parts.join(", ");
-      }
-    }
-
-    return String(error);
-  }
-
-  private async downloadToBuffer(url: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      https
-        .get(url, (response) => {
-          if (response.statusCode && response.statusCode >= 400) {
-            reject(
-              new InternalServerErrorException(
-                `Image download failed with status ${response.statusCode}`,
-              ),
-            );
-            return;
-          }
-
-          const chunks: Uint8Array[] = [];
-          response.on("data", (chunk) =>
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
-          );
-          response.on("end", () => resolve(Buffer.concat(chunks)));
-          response.on("error", reject);
-        })
-        .on("error", reject);
-    });
   }
 }

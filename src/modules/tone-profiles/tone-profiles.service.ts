@@ -9,9 +9,12 @@ export class ToneProfilesService {
   async findAll() {
     return this.prisma.toneProfile.findMany({
       include: {
+        stepGroupingPrompt: true,
         stepOneRawDraftPrompt: true,
         stepTwoPolishingPrompt: true,
         stepThreeImagePrompt: true,
+        stepCompanySocialPrompt: true,
+        stepPersonalSocialPrompt: true,
       },
       orderBy: { name: "asc" },
     });
@@ -21,9 +24,12 @@ export class ToneProfilesService {
     const toneProfile = await this.prisma.toneProfile.findUnique({
       where: { id },
       include: {
+        stepGroupingPrompt: true,
         stepOneRawDraftPrompt: true,
         stepTwoPolishingPrompt: true,
         stepThreeImagePrompt: true,
+        stepCompanySocialPrompt: true,
+        stepPersonalSocialPrompt: true,
       },
     });
 
@@ -47,6 +53,16 @@ export class ToneProfilesService {
       const toneProfile = await tx.toneProfile.create({
         data: {
           name: dto.name,
+        },
+      });
+
+      const stepGrouping = await tx.stepGroupingPrompt.create({
+        data: {
+          toneProfileId: toneProfile.id,
+          title: dto.stepGroupingPrompt.title,
+          systemPrompt: dto.stepGroupingPrompt.systemPrompt,
+          template: dto.stepGroupingPrompt.template,
+          isActive: dto.stepGroupingPrompt.isActive ?? true,
         },
       });
 
@@ -80,11 +96,34 @@ export class ToneProfilesService {
         },
       });
 
+      const stepCompanySocial = await tx.stepCompanySocialPrompt.create({
+        data: {
+          toneProfileId: toneProfile.id,
+          title: dto.stepCompanySocialPrompt.title,
+          systemPrompt: dto.stepCompanySocialPrompt.systemPrompt,
+          template: dto.stepCompanySocialPrompt.template,
+          isActive: dto.stepCompanySocialPrompt.isActive ?? true,
+        },
+      });
+
+      const stepPersonalSocial = await tx.stepPersonalSocialPrompt.create({
+        data: {
+          toneProfileId: toneProfile.id,
+          title: dto.stepPersonalSocialPrompt.title,
+          systemPrompt: dto.stepPersonalSocialPrompt.systemPrompt,
+          template: dto.stepPersonalSocialPrompt.template,
+          isActive: dto.stepPersonalSocialPrompt.isActive ?? true,
+        },
+      });
+
       return {
         ...toneProfile,
+        stepGroupingPrompt: stepGrouping,
         stepOneRawDraftPrompt: stepOne,
         stepTwoPolishingPrompt: stepTwo,
         stepThreeImagePrompt: stepThree,
+        stepCompanySocialPrompt: stepCompanySocial,
+        stepPersonalSocialPrompt: stepPersonalSocial,
       };
     });
   }
@@ -105,6 +144,26 @@ export class ToneProfilesService {
         await tx.toneProfile.update({
           where: { id },
           data: { name: dto.name },
+        });
+      }
+
+      // Update Step Grouping
+      if (dto.stepGroupingPrompt) {
+        await tx.stepGroupingPrompt.upsert({
+          where: { toneProfileId: id },
+          update: {
+            title: dto.stepGroupingPrompt.title,
+            systemPrompt: dto.stepGroupingPrompt.systemPrompt,
+            template: dto.stepGroupingPrompt.template,
+            isActive: dto.stepGroupingPrompt.isActive,
+          },
+          create: {
+            toneProfileId: id,
+            title: dto.stepGroupingPrompt.title ?? "Step Grouping Prompt",
+            systemPrompt: dto.stepGroupingPrompt.systemPrompt ?? "",
+            template: dto.stepGroupingPrompt.template ?? "",
+            isActive: dto.stepGroupingPrompt.isActive ?? true,
+          },
         });
       }
 
@@ -168,12 +227,55 @@ export class ToneProfilesService {
         });
       }
 
+      // Update Step Company Social
+      if (dto.stepCompanySocialPrompt) {
+        await tx.stepCompanySocialPrompt.upsert({
+          where: { toneProfileId: id },
+          update: {
+            title: dto.stepCompanySocialPrompt.title,
+            systemPrompt: dto.stepCompanySocialPrompt.systemPrompt,
+            template: dto.stepCompanySocialPrompt.template,
+            isActive: dto.stepCompanySocialPrompt.isActive,
+          },
+          create: {
+            toneProfileId: id,
+            title: dto.stepCompanySocialPrompt.title ?? "Step Company Social Prompt",
+            systemPrompt: dto.stepCompanySocialPrompt.systemPrompt ?? "",
+            template: dto.stepCompanySocialPrompt.template ?? "",
+            isActive: dto.stepCompanySocialPrompt.isActive ?? true,
+          },
+        });
+      }
+
+      // Update Step Personal Social
+      if (dto.stepPersonalSocialPrompt) {
+        await tx.stepPersonalSocialPrompt.upsert({
+          where: { toneProfileId: id },
+          update: {
+            title: dto.stepPersonalSocialPrompt.title,
+            systemPrompt: dto.stepPersonalSocialPrompt.systemPrompt,
+            template: dto.stepPersonalSocialPrompt.template,
+            isActive: dto.stepPersonalSocialPrompt.isActive,
+          },
+          create: {
+            toneProfileId: id,
+            title: dto.stepPersonalSocialPrompt.title ?? "Step Personal Social Prompt",
+            systemPrompt: dto.stepPersonalSocialPrompt.systemPrompt ?? "",
+            template: dto.stepPersonalSocialPrompt.template ?? "",
+            isActive: dto.stepPersonalSocialPrompt.isActive ?? true,
+          },
+        });
+      }
+
       return tx.toneProfile.findUnique({
         where: { id },
         include: {
+          stepGroupingPrompt: true,
           stepOneRawDraftPrompt: true,
           stepTwoPolishingPrompt: true,
           stepThreeImagePrompt: true,
+          stepCompanySocialPrompt: true,
+          stepPersonalSocialPrompt: true,
         },
       });
     });

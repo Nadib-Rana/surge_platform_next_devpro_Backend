@@ -4,9 +4,14 @@ import { ValidationPipe, BadRequestException } from "@nestjs/common";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 import { ContextService } from "./common/context/context.service";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { json, urlencoded } from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Increase payload limit for avatar images & large data payloads
+  app.use(json({ limit: "10mb" }));
+  app.use(urlencoded({ limit: "10mb", extended: true }));
 
   // Allow frontend integration from configured origins.
   const allowedOrigins = process.env.CORS_ORIGINS

@@ -76,4 +76,39 @@ export class UpdateGeneratedDraftDto {
   @IsOptional()
   @IsString()
   imageProvider?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  rawContent?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  polishedContent?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  companySocialPost?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  personalSocialPost?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  imageConcept?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  negativeConstraints?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  imageCaption?: string;
 }

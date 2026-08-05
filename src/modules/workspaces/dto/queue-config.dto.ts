@@ -21,7 +21,23 @@ export class QueueConfigDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
   @IsString({ each: true })
   postingTimes?: string[];
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  targetAudience?: string;
+
+  @IsOptional()
+  @IsString()
+  brandVoice?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  editorialRules?: string[];
 }
