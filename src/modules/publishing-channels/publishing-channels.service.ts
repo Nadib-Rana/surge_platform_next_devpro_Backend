@@ -3,6 +3,7 @@ import { PrismaService } from "../../common/context/prisma.service";
 import { EncryptionService } from "../../common/security/encryption.service";
 import { CreatePublishingChannelDto } from "./dto/create-publishing-channel.dto";
 import { UpdatePublishingChannelDto } from "./dto/update-publishing-channel.dto";
+import { assertWorkspaceAccess, AuthenticatedUser } from "../workspaces/helpers/workspace-auth.util";
 
 @Injectable()
 export class PublishingChannelsService {
@@ -11,7 +12,11 @@ export class PublishingChannelsService {
     private readonly encryptionService: EncryptionService,
   ) {}
 
-  async create(dto: CreatePublishingChannelDto) {
+  async create(dto: CreatePublishingChannelDto, user: AuthenticatedUser) {
+    if (dto.workspaceId) {
+      await assertWorkspaceAccess(this.prisma, dto.workspaceId, user, "update");
+    }
+
     const encryptedCredentials = this.encryptionService.encrypt(
       dto.credentials,
     );
@@ -28,7 +33,11 @@ export class PublishingChannelsService {
     return this.sanitizeChannel(channel);
   }
 
-  async findAll(workspaceId?: string) {
+  async findAll(workspaceId: string | undefined, user: AuthenticatedUser) {
+    if (workspaceId) {
+      await assertWorkspaceAccess(this.prisma, workspaceId, user, "view");
+    }
+
     const channels = await this.prisma.publishingChannel.findMany({
       where: workspaceId ? { workspaceId } : {},
       orderBy: { createdAt: "desc" },
@@ -37,7 +46,7 @@ export class PublishingChannelsService {
     return channels.map((channel) => this.sanitizeChannel(channel));
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: AuthenticatedUser) {
     const channel = await this.prisma.publishingChannel.findUnique({
       where: { id },
     });
@@ -46,16 +55,24 @@ export class PublishingChannelsService {
       throw new NotFoundException(`Publishing channel ${id} not found`);
     }
 
+    if (channel.workspaceId) {
+      await assertWorkspaceAccess(this.prisma, channel.workspaceId, user, "view");
+    }
+
     return this.sanitizeChannel(channel);
   }
 
-  async update(id: string, dto: UpdatePublishingChannelDto) {
+  async update(id: string, dto: UpdatePublishingChannelDto, user: AuthenticatedUser) {
     const existing = await this.prisma.publishingChannel.findUnique({
       where: { id },
     });
 
     if (!existing) {
       throw new NotFoundException(`Publishing channel ${id} not found`);
+    }
+
+    if (existing.workspaceId) {
+      await assertWorkspaceAccess(this.prisma, existing.workspaceId, user, "update");
     }
 
     const data: Record<string, any> = {};
@@ -75,13 +92,17 @@ export class PublishingChannelsService {
     return this.sanitizeChannel(updated);
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: AuthenticatedUser) {
     const channel = await this.prisma.publishingChannel.findUnique({
       where: { id },
     });
 
     if (!channel) {
       throw new NotFoundException(`Publishing channel ${id} not found`);
+    }
+
+    if (channel.workspaceId) {
+      await assertWorkspaceAccess(this.prisma, channel.workspaceId, user, "delete");
     }
 
     return this.prisma.publishingChannel.delete({ where: { id } });

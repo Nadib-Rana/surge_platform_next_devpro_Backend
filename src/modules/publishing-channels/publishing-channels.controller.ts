@@ -15,6 +15,12 @@ import { UpdatePublishingChannelDto } from "./dto/update-publishing-channel.dto"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
+import { GetUser } from "../auth/decorators/get-user.decorator";
+
+interface AuthenticatedUser {
+  userId: string;
+  role: string;
+}
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles("admin", "customer")
@@ -25,33 +31,44 @@ export class PublishingChannelsController {
   ) {}
 
   @Post()
-  create(@Body() createPublishingChannelDto: CreatePublishingChannelDto) {
-    return this.publishingChannelsService.create(createPublishingChannelDto);
+  create(
+    @Body() createPublishingChannelDto: CreatePublishingChannelDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.publishingChannelsService.create(
+      createPublishingChannelDto,
+      user,
+    );
   }
 
   @Get()
-  findAll(@Query("workspaceId") workspaceId?: string) {
-    return this.publishingChannelsService.findAll(workspaceId);
+  findAll(
+    @Query("workspaceId") workspaceId: string,
+    @GetUser() user: AuthenticatedUser,
+  ) {
+    return this.publishingChannelsService.findAll(workspaceId, user);
   }
 
   @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.publishingChannelsService.findOne(id);
+  findOne(@Param("id") id: string, @GetUser() user: AuthenticatedUser) {
+    return this.publishingChannelsService.findOne(id, user);
   }
 
   @Patch(":id")
   update(
     @Param("id") id: string,
     @Body() updatePublishingChannelDto: UpdatePublishingChannelDto,
+    @GetUser() user: AuthenticatedUser,
   ) {
     return this.publishingChannelsService.update(
       id,
       updatePublishingChannelDto,
+      user,
     );
   }
 
   @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.publishingChannelsService.remove(id);
+  remove(@Param("id") id: string, @GetUser() user: AuthenticatedUser) {
+    return this.publishingChannelsService.remove(id, user);
   }
 }

@@ -2,7 +2,6 @@ import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { BullModule } from "@nestjs/bullmq";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
-import { ApiTestController } from "./api-test.controller";
 import { ContextModule } from "./common/context/context.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { APP_INTERCEPTOR, Reflector } from "@nestjs/core";
@@ -63,7 +62,7 @@ import { ToneProfilesModule } from "./modules/tone-profiles/tone-profiles.module
     StorageModule,
     ToneProfilesModule,
   ],
-  controllers: [AppController, ApiTestController],
+  controllers: [AppController],
   providers: [
     AppService,
     {

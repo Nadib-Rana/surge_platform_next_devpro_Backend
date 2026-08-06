@@ -155,6 +155,8 @@ model RssFeed {
   // Relations
   rawPosts RawPostsBuffer[]
 
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
   @@map("rss_feeds")
 }
 
@@ -178,6 +180,8 @@ model RawPostsBuffer {
   generatedDrafts GeneratedDraft[]
   articleGroup    ArticleGroup?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
   @@map("raw_posts_buffer")
 }
 
@@ -219,7 +223,8 @@ model GeneratedDraft {
   publishedLogs PublishedPostsLog[]
   group                ArticleGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
-  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
   @@index([toneProfileId])
   @@map("generated_drafts")
 }

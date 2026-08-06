@@ -557,6 +557,29 @@
               }
             },
             {
+              "name": "Get My Company",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/companies/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "companies",
+                    "me"
+                  ]
+                },
+                "description": "Retrieve the company that belongs to the currently authenticated user."
+              }
+            },
+            {
               "name": "Stripe Webhook",
               "request": {
                 "method": "POST",
@@ -891,6 +914,32 @@
                 },
                 "description": "Delete an RSS source. Pass force=true for hard delete."
               }
+            },
+            {
+              "name": "Trigger RSS Source Scrape",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{jwtToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/workspaces/{{workspaceId}}/rss-sources/{{sourceId}}/scrape",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "workspaces",
+                    "{{workspaceId}}",
+                    "rss-sources",
+                    "{{sourceId}}",
+                    "scrape"
+                  ]
+                },
+                "description": "Manually trigger an immediate RSS scrape for a specific source. Bypasses the BullMQ schedule and runs the scrape synchronously."
+              }
             }
           ]
         },
@@ -930,6 +979,159 @@
                 }
               }
             ]
+          }
+        ]
+      },
+      {
+        "name": "Module 2.5: RSS Feeds Management (Internal)",
+        "description": "Low-level RSS feed CRUD. These are the underlying RssFeed records stored in the database, as opposed to workspace-scoped rss-sources. Primarily used for internal admin operations.",
+        "item": [
+          {
+            "name": "Create RSS Feed",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"feedUrl\": \"https://techcrunch.com/feed/\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/rss-feeds",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "rss-feeds"
+                ]
+              },
+              "description": "Create a new RSS feed record."
+            }
+          },
+          {
+            "name": "List RSS Feeds",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/rss-feeds",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "rss-feeds"
+                ]
+              },
+              "description": "List all RSS feed records."
+            }
+          },
+          {
+            "name": "Get RSS Feed By ID",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/rss-feeds/:id",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "rss-feeds",
+                  ":id"
+                ],
+                "variable": [
+                  {
+                    "key": "id",
+                    "value": "1"
+                  }
+                ]
+              },
+              "description": "Retrieve a specific RSS feed record by numeric ID."
+            }
+          },
+          {
+            "name": "Update RSS Feed",
+            "request": {
+              "method": "PATCH",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"feedUrl\": \"https://techcrunch.com/feed/updated\"\n}"
+              },
+              "url": {
+                "raw": "{{baseUrl}}/rss-feeds/:id",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "rss-feeds",
+                  ":id"
+                ],
+                "variable": [
+                  {
+                    "key": "id",
+                    "value": "1"
+                  }
+                ]
+              },
+              "description": "Update an RSS feed record by numeric ID."
+            }
+          },
+          {
+            "name": "Delete RSS Feed",
+            "request": {
+              "method": "DELETE",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{jwtToken}}"
+                }
+              ],
+              "url": {
+                "raw": "{{baseUrl}}/rss-feeds/:id",
+                "host": [
+                  "{{baseUrl}}"
+                ],
+                "path": [
+                  "rss-feeds",
+                  ":id"
+                ],
+                "variable": [
+                  {
+                    "key": "id",
+                    "value": "1"
+                  }
+                ]
+              },
+              "description": "Delete an RSS feed record by numeric ID."
+            }
           }
         ]
       },

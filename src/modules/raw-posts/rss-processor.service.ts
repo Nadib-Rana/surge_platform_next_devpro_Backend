@@ -5,6 +5,7 @@ import { PrismaService } from "../../common/context/prisma.service";
 import { createUrlHash } from "./utils/url-hash.util";
 import { extractAndSanitizeArticleContent } from "./utils/rss-article-extractor.util";
 import Parser from "rss-parser";
+import { validateUrlForSsrf } from "../../common/helpers/ssrf-protection.util";
 
 interface RssJobPayload {
   workspaceId: string;
@@ -67,6 +68,7 @@ export class RssProcessor extends WorkerHost {
     }
 
     try {
+      validateUrlForSsrf(feedUrl);
       let items: ParsedFeedItem[] = [];
 
       // 1. Primary approach: fetch with custom headers and timeout

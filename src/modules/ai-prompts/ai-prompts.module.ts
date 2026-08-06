@@ -26,6 +26,15 @@ import { PersonalSocialProcessor } from "./processors/personal-social.processor"
     GeneratedDraftsModule,
     BullModule.registerQueue({
       name: "content-generation-queue",
+      defaultJobOptions: {
+        attempts: 5,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
     }),
   ],
   controllers: [AiPromptsController],
